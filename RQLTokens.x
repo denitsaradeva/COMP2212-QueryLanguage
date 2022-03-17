@@ -30,6 +30,7 @@ tokens :-
  \;                                        {\s -> TokenSemiColon}
  \"                                        {\s -> TokenParen}
  \-                                        {\s -> TokenHyphen}
+ \+                                        {\s -> TokenPlus}
  \(                                        {\s -> TokenLBracket}
  \)                                        {\s -> TokenRBracket}
  $digit+                                   {\s -> TokenInt (read s)} 
@@ -59,6 +60,7 @@ data RQLToken =
   TokenSemiColon        |
   TokenParen            |
   TokenHyphen           |
+  TokenPlus             |
   TokenInt Int          |
   TokenString String       
     deriving (Eq, Show)   
