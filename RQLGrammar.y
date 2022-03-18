@@ -21,64 +21,39 @@ import Data.List
   dot            { TokenDot}
   semiColon      { TokenSemiColon}
   paren          { TokenParen}
-  hyphen         { TokenHyphen}
+  minus          { TokenMinus}
   plus           { TokenPlus}
-  --lBracket       { TokenLBracket}
-  --rBracket       { TokenRBracket}
-  --from           { TokenFrom}
-  --select         { TokenSelect}
-  --where          { TokenWhere}
-  --and            { TokenAnd}
-  --or             { TokenOr}
-  --not            { TokenNot}
-  --end            { TokenEnd}
 
 %left NEG semiColon 
 %right dot comma
 %nonassoc true false int str lURIBracket rURIBracket hyphen plus paren base prefix colon
 %%
           
-Exp : URI URI OExp dot                                         { $1 $2 $3}
-    | SubPref SubPref SubPref dot                              { $1 $2 $3}
-    | URI URI OExpList dot                                     { $1 $2 $3}
-    | URI POExpList dot                                        { $1 $2}
-    | Annotations dot                                          { $1}
+Exp : prefix str colon lURIBracket str rURIBracket dot   {Prefix $2 $5}
+    | base lURIBracket str rURIBracket dot               {Base $3}
+    --| lURIBracket str rURIBracket lURIBracket str rURIBracket lURIBracket str rURIBracket {Triple $2 $5 $8}
 
-SubPref : str colon str                                        { SubPrefix $1 $3}
-
-URI : lURIBracket str rURIBracket                              { URI $2}
-           
-Annotations : base URI                                         { Base $2}
-            | prefix str colon URI                             { Prefix $2 $4}
-
-
-OExpList : OExp                                                { [$1]}
-         | OExp comma OExpList                                 { ($1:$2)}
-
-POExpList : URI OExp                                           { [$1 : $2]}
-          | URI OExp semiColon POExpList                       { ($1 : $2 : $4)}
-
-OExp : int                                                     { Int $1}
-     | plus int %prec NEG                                      { Plus $2}
-     | hyphen int %prec NEG                                    { Hyphen $2}
-     | true                                                    { Bool True}                   
-     | false                                                   { Bool False}                                                   
-     | paren str paren                                         { String $2}
-     | URI                                                     { $1}
     
 { 
 
---parseError :: [RQLToken] -> a
---parseError _ = error "Error on tokens: "
+parseError :: [RQLToken] -> a
+parseError _ = error "Error on tokens: "
 
-data RQLExp = Int Int
-              | String String
-              | Bool Bool
-              | URI String
-              | Base String
-              | Prefix String String
-              | SubPrefix String String
-              | Plus Int
-              | Hyphen Int
-        deriving Show
+data TurtleLiteral = Int Int
+                   | String String
+                   | Bool Bool
+          deriving Show
+
+data TurtleExp = Prefix String String
+               | Base String
+               | Object TurtleLiteral
+               | Subject String
+               | Predicate String
+               | ObjectList [TurtleLiteral]
+               | PredObjList [(String, [TurtleLiteral])]
+               | Triple String String TurtleLiteral
+               | ObjMTriple String String [TurtleLiteral]
+               | PredObjMTriple String [(String, [TurtleLiteral])]
+          deriving Show
+              
 } 
