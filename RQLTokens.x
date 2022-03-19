@@ -24,8 +24,9 @@ tokens :-
  \"                                        {\s -> TokenParen}
  \-                                        {\s -> TokenMinus}
  \+                                        {\s -> TokenPlus}
- $digit+                                   {\s -> TokenInt (read s)} 
+-- "" [$alpha $digit \_ \â€™\/\:\.\#]*   {\s -> TokenURI s } 
  $alpha [$alpha $digit \_ \â€™\/\:\.\#]*   {\s -> TokenString s } 
+ $digit+                                   {\s -> TokenInt (read s)} 
  
  
 { 
@@ -43,6 +44,7 @@ data RQLToken =
   TokenParen            |
   TokenMinus            |
   TokenPlus             |
+ -- TokenURI String       |
   TokenInt Int          |
   TokenString String       
     deriving (Eq, Show)   

@@ -23,15 +23,33 @@ import Data.List
   paren          { TokenParen}
   minus          { TokenMinus}
   plus           { TokenPlus}
+  --uri            { TokenURI $$}
 
-%left NEG semiColon 
-%right dot comma
-%nonassoc true false int str lURIBracket rURIBracket hyphen plus paren base prefix colon
+%left NEG 
+%nonassoc true false int str lURIBracket rURIBracket minus plus paren base prefix colon semiColon dot comma
 %%
           
-Exp : prefix str colon lURIBracket str rURIBracket dot   {Prefix $2 $5}
-    | base lURIBracket str rURIBracket dot               {Base $3}
-    --| lURIBracket str rURIBracket lURIBracket str rURIBracket lURIBracket str rURIBracket {Triple $2 $5 $8}
+Exp : prefix str colon URIExp dot                              { Prefix $2 $4}
+    | base URIExp dot                                          { Base $2}
+    | URIExp URIExp ObjectExp dot                              { Triple $1 $2 $3}
+    | URIExp URIExp ObjectExpList dot                          { ObjMTriple $1 $2 $3}
+    | URIExp PredObjExpList dot                                { PredObjMTriple $1 $2}
+
+ObjectExpList : ObjectExp %prec NEG                            { [$1]}
+              | ObjectExp comma ObjectExpList                  { ($1:$3)}
+
+PredObjExpList : URIExp ObjectExpList %prec NEG                { [($1,$2)]}
+               | URIExp ObjectExpList semiColon PredObjExpList { (($1, $2):$4)}
+
+ObjectExp : lURIBracket str rURIBracket                        { URI $2}
+          | int                                                { Int $1}
+          | plus int                                           { PlusInt $2}
+          | minus int                                          { MinusInt $2}
+          | true                                               { Bool True}
+          | false                                              { Bool False}
+          | paren str paren                                    { String $2}
+
+URIExp : lURIBracket str rURIBracket                           { URIExpr $2}
 
     
 { 
@@ -39,21 +57,27 @@ Exp : prefix str colon lURIBracket str rURIBracket dot   {Prefix $2 $5}
 parseError :: [RQLToken] -> a
 parseError _ = error "Error on tokens: "
 
-data TurtleLiteral = Int Int
-                   | String String
-                   | Bool Bool
+data TurtleExp = Prefix String URIExp
+               | Base URIExp
+               | Object Object
+               | Subject URIExp
+               | Predicate URIExp
+               | ObjectList [Object]
+               | PredObjList [(String, [Object])]
+               | Triple URIExp URIExp Object
+               | ObjMTriple URIExp URIExp [Object]
+               | PredObjMTriple URIExp [(URIExp, [Object])]
           deriving Show
 
-data TurtleExp = Prefix String String
-               | Base String
-               | Object TurtleLiteral
-               | Subject String
-               | Predicate String
-               | ObjectList [TurtleLiteral]
-               | PredObjList [(String, [TurtleLiteral])]
-               | Triple String String TurtleLiteral
-               | ObjMTriple String String [TurtleLiteral]
-               | PredObjMTriple String [(String, [TurtleLiteral])]
+data Object = Int Int
+            | String String
+            | Bool Bool
+            | MinusInt Int
+            | PlusInt Int
+            | URI String
           deriving Show
-              
+
+data URIExp = URIExpr String
+          deriving Show
+
 } 
