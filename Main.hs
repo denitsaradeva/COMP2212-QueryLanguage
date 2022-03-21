@@ -4,8 +4,8 @@ import RQLGrammar
 
 main :: IO ()
 main = do
-          putStrLn "Write your program:"  
-          program <- getLine  
-          print $ (parseCalc . alexScanTokens) program 
+          x <- getArgs
+          y <- readFile (head x)
+          print $ (parseCalc . alexScanTokens) y
           
 

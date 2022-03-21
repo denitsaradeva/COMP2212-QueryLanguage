@@ -29,11 +29,15 @@ import Data.List
 %nonassoc true false int str lURIBracket rURIBracket minus plus paren base prefix colon semiColon dot comma
 %%
           
+ExpList : Exp                                                  { [$1]}
+        | Exp ExpList                                          { ($1:$2)}
+
 Exp : prefix str colon URIExp dot                              { Prefix $2 $4}
     | base URIExp dot                                          { Base $2}
     | URIExp URIExp ObjectExp dot                              { Triple $1 $2 $3}
     | URIExp URIExp ObjectExpList dot                          { ObjMTriple $1 $2 $3}
     | URIExp PredObjExpList dot                                { PredObjMTriple $1 $2}
+    | str colon str str colon str str colon str dot            { SubPrefix $1 $3 $4 $6 $7 $9}
 
 ObjectExpList : ObjectExp %prec NEG                            { [$1]}
               | ObjectExp comma ObjectExpList                  { ($1:$3)}
@@ -55,7 +59,7 @@ URIExp : lURIBracket str rURIBracket                           { URIExpr $2}
 { 
 
 parseError :: [RQLToken] -> a
-parseError _ = error "Error on tokens: "
+parseError ts = error ("Error on tokens: " ++ (show ts))
 
 data TurtleExp = Prefix String URIExp
                | Base URIExp
@@ -67,6 +71,7 @@ data TurtleExp = Prefix String URIExp
                | Triple URIExp URIExp Object
                | ObjMTriple URIExp URIExp [Object]
                | PredObjMTriple URIExp [(URIExp, [Object])]
+               | SubPrefix String String String String String String
           deriving Show
 
 data Object = Int Int
