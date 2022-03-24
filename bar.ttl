@@ -11,6 +11,10 @@ s : subjectD p : predicateD s : objectD .
 @prefix t : <tprefix/> .                   
 t : subjectE p : predicateE t : objectE .   
 
-<prob4B> <testPredA> <prob4C> .
+<prob4B> <testPredA> true .
 <prob4D> <testPredB> <prob4E> .
 <prob4F> <testPredC> <prob4A> .
+
+<testSubA> <testPredList> -5 ; <testPredList> 10, 20 ; <testPredList> 20 .
+
+<testSubA> <testObjList> -5 , 10 , 20 .
