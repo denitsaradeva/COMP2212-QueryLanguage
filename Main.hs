@@ -6,6 +6,7 @@ main :: IO ()
 main = do
           x <- getArgs
           y <- readFile (head x)
+          --print $ alexScanTokens y
           print $ (parseCalc . alexScanTokens) y
           
 --eval :: [(URIExp, URIExp, Object)] -> [TurtleExp] -> [(URIExp, URIExp, Object)]

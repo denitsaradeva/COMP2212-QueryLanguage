@@ -23,12 +23,12 @@ import Data.List
   paren          { TokenParen}
   minus          { TokenMinus}
   plus           { TokenPlus}
-  --uri            { TokenURI $$}
+  abs            { TokenAbsolute}
 
 %left NEG 
 %nonassoc true false int str lURIBracket rURIBracket minus plus paren base prefix colon semiColon dot comma
 %%
-          
+
 ExpList : Exp                                                  { [$1]}
         | Exp ExpList                                          { ($1:$2)}
 
@@ -45,7 +45,8 @@ ObjectExpList : ObjectExp %prec NEG                            { [$1]}
 PredObjExpList : URIExp ObjectExpList %prec NEG                { [($1,$2)]}
                | URIExp ObjectExpList semiColon PredObjExpList { (($1, $2):$4)}
 
-ObjectExp : lURIBracket str rURIBracket                        { URI $2}
+ObjectExp : lURIBracket abs str rURIBracket                    { AbsURI $3}
+          | lURIBracket str rURIBracket                        { URI $2}
           | int                                                { Int $1}
           | plus int                                           { PlusInt $2}
           | minus int                                          { MinusInt $2}
@@ -53,7 +54,8 @@ ObjectExp : lURIBracket str rURIBracket                        { URI $2}
           | false                                              { Bool False}
           | paren str paren                                    { String $2}
 
-URIExp : lURIBracket str rURIBracket                           { URIExpr $2}
+URIExp : lURIBracket abs str rURIBracket                       { AbsExpr $3} 
+       | lURIBracket str rURIBracket                           { URIExpr $2}
 
     
 { 
@@ -80,9 +82,11 @@ data Object = Int Int
             | MinusInt Int
             | PlusInt Int
             | URI String
+            | AbsURI String
           deriving Show
 
 data URIExp = URIExpr String
+            | AbsExpr String
           deriving Show
 
 } 

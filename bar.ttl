@@ -2,8 +2,8 @@
 
 @base <http://www.cw.org/> .
 
-@prefix p : <http://www.cw.org/notpprefix/> .
-p : subjectC p : predicateC p : objectC .    
+@prefix p: <http://www.cw.org/notpprefix/> .
+p:subjectC p:predicateC p:objectC .    
 
 @prefix s : <http://www.cw.org/sprefix/> .
 s : subjectD p : predicateD s : objectD .     
