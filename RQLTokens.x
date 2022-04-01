@@ -25,7 +25,7 @@ tokens :-
  \-                                        {\s -> TokenMinus}
  \+                                        {\s -> TokenPlus}
  "http://"                                 {\s -> TokenAbsolute}
- $alpha [$alpha $digit \_ \â€™\/\.\#]*   {\s -> TokenString s } 
+ $alpha [$alpha $digit \_ \â€™\/\.\#]*     {\s -> TokenString s} 
  $digit+                                   {\s -> TokenInt (read s)} 
  
  
