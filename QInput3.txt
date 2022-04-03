@@ -1,0 +1,3 @@
+SELECT foo
+WHERE predicate IS "baraban" OR predicate IS "pelikan" OR predicate IS "garne" AS a
+PRINT a; 

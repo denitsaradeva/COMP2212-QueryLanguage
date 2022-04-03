@@ -1,0 +1,3 @@
+SELECT foo
+WHERE subject IS "banica" AND object IS true AS a
+PRINT a;

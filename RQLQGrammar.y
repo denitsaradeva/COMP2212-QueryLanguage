@@ -28,13 +28,16 @@ import Data.List
   paren                                  {TokenParen}
   lBracket                               {TokenLBracket}
   rBracket                               {TokenRBracket}
+  minus                                  {TokenMinus}
+  plus                                   {TokenPlus}
   true                                   {TokenTrue}
   false                                  {TokenFalse}
   int                                    {TokenInt $$}
   str                                    {TokenString $$} 
 
-%left NEG AND OR
-%nonassoc true false int str lURIBracket rURIBracket minus plus paren base prefix colon semiColon dot comma AS
+%nonassoc IS
+%left AND OR
+%nonassoc true false int str minus plus paren semiColon comma AS object
 %%
 
 QueList : Que                            {[$1]}
@@ -62,27 +65,29 @@ WhereQue : NormalWhereQue                                    {NormalWhereRequest
          | WhereQue OR WhereQue                              {OrWhereRequest $1 $3}
          | WhereQue AND WhereQue                             {AndWhereRequest $1 $3}
 
-NormalWhereQue : subject IS StringExp                                              {IsSubject $3}
-               | predicate IS StringExp                                            {IsPredicate $3}
-               | object IS Literal                                                 {IsObject $3}
-               | str dollar object IS Literal                                      {IsAliasLit ($1, Object) $5}
+NormalWhereQue : subject IS StringExp                                                {IsSubject $3}
+               | predicate IS StringExp                                           {IsPredicate $3}
+               | object IS Literal                                                {IsObject $3}
+               | str dollar object IS Literal                                     {IsAliasLit ($1, Object) $5}
                | str dollar Triplets IS StringExp                                  {IsAliasStr ($1, $3) $5}
                | str dollar Triplets IS str dollar Triplets                        {IsAlias ($1, $3) ($5, $7)}
-               | object IS BETWEEN lBracket int comma int rBracket                 {IsBetween ($5, $7)}
-               | object IS NOT BETWEEN lBracket int comma int rBracket             {IsNotBetween ($6, $8)}
-               | str dollar object IS BETWEEN lBracket int comma int rBracket      {IsBetweenAlias ($1, Object) ($7, $9)}
-               | str dollar object IS NOT BETWEEN lBracket int comma int rBracket  {IsNotBetweenAlias ($1, Object) ($8, $10)}
+               | object IS BETWEEN lBracket Literal comma Literal rBracket                  {IsBetween ($5, $7)}
+               | object IS NOT BETWEEN lBracket Literal comma Literal rBracket              {IsNotBetween ($6, $8)}
+               | str dollar object IS BETWEEN lBracket Literal comma Literal rBracket       {IsBetweenAlias ($1, Object) ($7, $9)}
+               | str dollar object IS NOT BETWEEN lBracket Literal comma Literal rBracket   {IsNotBetweenAlias ($1, Object) ($8, $10)}
 
 ----------------------------------------------------------------------------------------------
 UpdateQue : object TO Literal                {Updated $3}
           | str dollar object TO Literal     {UpdatedAlias ($1, $5)}
 
 ----------------------------------------------------------------------------------------------
-PrintQue : str                           {[$1]}
-         | str comma PrintQue semiColon  {($1:$3)}
+PrintQue : str semiColon                 {[$1]}
+         | str comma PrintQue            {($1:$3)}
 
 ----------------------------------------------------------------------------------------------
 Literal : int                            {Int $1}
+        | minus int                      {MinusInt $2}
+        | plus int                       {PlusInt $2}
         | paren str paren                {String $2}
         | true                           {Bool True}
         | false                          {Bool False}
@@ -123,10 +128,10 @@ data ConditionalType = IsSubject String
                      | IsAlias (String, Triplet) (String, Triplet)
                      | IsAliasLit (String, Triplet) LiteralType
                      | IsAliasStr (String, Triplet) String
-                     | IsBetween (Int, Int)
-                     | IsBetweenAlias (String, Triplet) (Int, Int)
-                     | IsNotBetween (Int, Int)
-                     | IsNotBetweenAlias (String, Triplet) (Int, Int)
+                     | IsBetween (LiteralType, LiteralType)
+                     | IsBetweenAlias (String, Triplet) (LiteralType, LiteralType)
+                     | IsNotBetween (LiteralType, LiteralType)
+                     | IsNotBetweenAlias (String, Triplet) (LiteralType, LiteralType)
                 deriving Show
 
 data UpdateExp = Updated LiteralType
@@ -139,9 +144,9 @@ data Triplet = Subject
            deriving Show
 
 data LiteralType = Int Int
+                 | MinusInt Int
+                 | PlusInt Int
                  | String String
                  | Bool Bool
-              --   | MinusInt Int
-              --   | PlusInt Int
                deriving Show
 } 

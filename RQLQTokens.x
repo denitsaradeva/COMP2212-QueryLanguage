@@ -31,12 +31,12 @@ object                                 {\s -> TokenObject}
 \"                                     {\s -> TokenParen}
 \(                                     {\s -> TokenLBracket}
 \)                                     {\s -> TokenRBracket}
+\-                                     {\s -> TokenMinus}
+\+                                     {\s -> TokenPlus}
 true                                   {\s -> TokenTrue}
 false                                  {\s -> TokenFalse}
 $digit+                                {\s -> TokenInt (read s)}
 $alpha [$alpha $digit \_ \â€™\/\.\#]*  {\s -> TokenString s} 
-
---TODO: Add +/- for object queries
  
 { 
 data RQLQToken = 
@@ -60,6 +60,8 @@ data RQLQToken =
   TokenParen           |
   TokenLBracket        |
   TokenRBracket        |
+  TokenMinus           |
+  TokenPlus            |
   TokenTrue            |
   TokenFalse           |
   TokenInt Int         |

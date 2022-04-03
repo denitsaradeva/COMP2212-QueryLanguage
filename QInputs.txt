@@ -1,4 +1,3 @@
-SELECT failaMi AS f
-WHERE f$predicate IS "emo" OR d$predicate IS "teo" AND object IS BETWEEN (0,50) AS friends
-UPDATE friends $ object TO 4
-PRINT friends, nenichuvash;
+SELECT foo AS a, bar AS b
+WHERE a$object IS b$subject AND b$object IS a$subject AS c
+PRINT c;

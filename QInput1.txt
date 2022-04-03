@@ -1,0 +1,2 @@
+SELECT foo, bar
+PRINT foo, bar;
