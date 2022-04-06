@@ -511,8 +511,6 @@ data TurtleExp = Prefix String URIExp
                | Object Object
                | Subject URIExp
                | Predicate URIExp
-               | ObjectList [Object]
-               | PredObjList [(String, [Object])]
                | Triple URIExp URIExp Object
                | ObjMTriple URIExp URIExp [Object]
                | PredObjMTriple URIExp [(URIExp, [Object])]

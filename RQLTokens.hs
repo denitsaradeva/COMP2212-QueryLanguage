@@ -5682,7 +5682,7 @@ alex_action_12 = \s -> TokenParen
 alex_action_13 = \s -> TokenMinus
 alex_action_14 = \s -> TokenPlus
 alex_action_15 = \s -> TokenAbsolute
-alex_action_16 = \s -> TokenString s 
+alex_action_16 = \s -> TokenString s
 alex_action_17 = \s -> TokenInt (read s)
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 -- -----------------------------------------------------------------------------
