@@ -508,9 +508,6 @@ parseError ts = error ("Error on tokens: " ++ (show ts))
 
 data TurtleExp = Prefix String URIExp
                | Base URIExp
-               | Object Object
-               | Subject URIExp
-               | Predicate URIExp
                | Triple URIExp URIExp Object
                | ObjMTriple URIExp URIExp [Object]
                | PredObjMTriple URIExp [(URIExp, [Object])]

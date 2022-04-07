@@ -1,0 +1,7 @@
+<http://www.cw.org/subjectA> <http://www.cw.org/predicateA> <http://www.cw.org/objectA> . 
+
+@base <http://www.cw.org/> .
+@prefix p: <http://www.cw.org/notpprefix/> .
+
+-- <test1> <test2> <test11>, true, +5, -5, 5, false, "emo", <http://emko> .
+<testSubA> <testPredList0> <test0>, <test1> ; <testPredList1> +5, true, false; <testPredList2> -5; <testPredList3> <http://teo>, 17 .
