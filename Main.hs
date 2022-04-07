@@ -7,6 +7,7 @@ main = do
           x <- getArgs
           y <- readFile (head x)
           --print $ alexScanTokens y
+          --print $ (parseCalc . alexScanTokens) y
           print $ changeOccurancesLoop ((parseCalc . alexScanTokens) y) ((parseCalc . alexScanTokens) y)
 
 removeEmptyTriples :: [(String, String)] -> [(String, String)]
@@ -120,6 +121,7 @@ changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (AbsURI z: xs)) env = (
 
 
 changeOccurancesList (PredObjMTriple (URIExpr x) []) env = []
+changeOccurancesList (PredObjMTriple (AbsExpr x) []) env = []
 changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), []):ys)) env = changeOccurancesList (PredObjMTriple (URIExpr x) ys) env
 
 changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((URI z):zs)):ys)) env = ((a++x), (a++y), (a++z)) :
@@ -143,7 +145,75 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((String z):zs))
 changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((AbsURI z):zs)):ys)) env = ((a++x), (a++y), ("http://"++z)) :
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env   
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+
+
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), []):ys)) env = changeOccurancesList (PredObjMTriple (AbsExpr x) ys) env
+
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((URI z):zs)):ys)) env = (("http://"++x), ("http://"++y), (a++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((Bool z):zs)):ys)) env = (("http://"++x), ("http://"++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((Int z):zs)):ys)) env = (("http://"++x), ("http://"++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = (("http://"++x), ("http://"++y), ("+"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((MinusInt z):zs)):ys)) env = (("http://"++x), ("http://"++y), ("-"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((String z):zs)):ys)) env = (("http://"++x), ("http://"++y), (z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((AbsURI z):zs)):ys)) env = (("http://"++x), ("http://"++y), ("http://"++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)  
+ 
+
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), []):ys)) env = changeOccurancesList (PredObjMTriple (AbsExpr x) ys) env
+
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((URI z):zs)):ys)) env = (("http://"++x), (a++y), (a++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((Bool z):zs)):ys)) env = (("http://"++x), (a++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((Int z):zs)):ys)) env = (("http://"++x), (a++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((PlusInt z):zs)):ys)) env = (("http://"++x), (a++y), ("+"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((MinusInt z):zs)):ys)) env = (("http://"++x), (a++y), ("-"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((String z):zs)):ys)) env = (("http://"++x), (a++y), (z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((AbsURI z):zs)):ys)) env = (("http://"++x), (a++y), ("http://"++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env   
+                                                                                                                      
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), []):ys)) env = changeOccurancesList (PredObjMTriple (URIExpr x) ys) env
+
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((URI z):zs)):ys)) env = ((a++x), ("http://"++y), (a++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((Bool z):zs)):ys)) env = ((a++x), ("http://"++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((Int z):zs)):ys)) env = ((a++x), ("http://"++y), (show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = ((a++x), ("http://"++y), ("+"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((MinusInt z):zs)):ys)) env = ((a++x), ("http://"++y), ("-"++show z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((String z):zs)):ys)) env = ((a++x), ("http://"++y), (z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs)):ys)) env = ((a++x), ("http://"++y), ("http://"++z)) :
+                                                                  (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
+                                                                                     where a = lookValue "base" env   
+
 --changeOccurances ()
 
 -- | ObjMTriple URIExp URIExp [Object]
