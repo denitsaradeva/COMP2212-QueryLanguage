@@ -319,5 +319,6 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs))
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env   
 
+-- helper function for AbsExp pretty print
 getAbsOutputString :: String -> String
 getAbsOutputString a = "http://" ++ a
