@@ -2,13 +2,42 @@ import System.Environment
 import RQLTokens
 import RQLGrammar
 import Data.List
+import Data.Char
 
 main :: IO ()
 main = do
           x <- getArgs
           y <- readFile (head x)
-          --print $ alexScanTokens y
-          print $ (sortBy sortAlph (changeOccurancesLoop ((parseCalc . alexScanTokens) y) ((parseCalc . alexScanTokens) y)))
+          writeFile "testOutput.ttl" (prettyPrint(filterDuplicates(sortBy sortAlph (changeOccurancesLoop ((parseCalc . alexScanTokens) y) ((parseCalc . alexScanTokens) y)))))
+
+prettyPrint :: [(String, String, String)] -> String
+prettyPrint [] = []
+prettyPrint (x:xs) | (take 7 (tripleTrd x)) == "http://" = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "><" ++ (tripleTrd x) ++ "> .\n" ++ (prettyPrint xs)
+                   | tripleTrd x == "False" = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "> " ++ "false" ++ " .\n" ++ (prettyPrint xs)
+                   | tripleTrd x == "True" = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "> " ++ "true" ++ " .\n" ++ (prettyPrint xs)
+                   | isInt (tripleTrd x) == False = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "> " ++ "\"" ++ (tripleTrd x) ++ "\"" ++ " .\n" ++ (prettyPrint xs)
+                   | otherwise = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "> " ++ (tripleTrd x) ++ " .\n" ++ (prettyPrint xs)
+
+filterDuplicates :: [(String, String, String)] -> [(String, String, String)]
+filterDuplicates [x] = [x]
+filterDuplicates (x:y:xs) | (x == y) = filterDuplicates (y:xs)
+                          | otherwise = x : filterDuplicates (y:xs)
+
+isInt :: String -> Bool
+isInt [] = True
+isInt (x:xs) | x == '-' = isInt xs
+             | x == '+' = isInt xs
+             | isDigit x = isInt xs
+             | otherwise = False
+
+tripleTrd :: (a,a,a) -> a
+tripleTrd (x,y,z) = z
+
+tripleSnd :: (a,a,a) -> a
+tripleSnd (x,y,z) = y
+
+tripleFst :: (a,a,a) -> a
+tripleFst (x,y,z) = x
 
 sortAlph :: (Ord a1, Ord a2) => (a1, a2, c1) -> (a1, a2, c2) -> Ordering
 sortAlph (a, b, c) (x, y, z)
@@ -26,7 +55,7 @@ findVarLoop [] = []
 findVarLoop (e:expr) = findVar e : findVarLoop expr
 
 findVar :: TurtleExp -> (String, String)
-findVar (Base (AbsExpr st)) = ("base", getAbsOutputString st)
+findVar (Base (AbsExpr st)) = ("base", "http://"++st)
 findVar _ = ("","")
 
 findPrefixesLoop :: [TurtleExp] -> [(String, String)] -> [(String, String)]
@@ -36,7 +65,7 @@ findPrefixesLoop (e:expr) env = findPrefixes e en : findPrefixesLoop expr env
 
 
 findPrefixes :: TurtleExp -> [(String, String)] -> (String, String)
-findPrefixes (Prefix (pr) (AbsExpr st)) env = (pr, getAbsOutputString st)
+findPrefixes (Prefix (pr) (AbsExpr st)) env = (pr, "http://"++st)
 findPrefixes (Prefix (pr) (URIExpr st)) env = (pr, ((lookValue "base" env)++st))
 findPrefixes _ env= ("", "")
 
@@ -69,7 +98,7 @@ changeOccurances (Triple (URIExpr x) (URIExpr y) (Bool z)) env = ((a++x), (a++y)
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (URIExpr x) (URIExpr y) (Int z)) env = ((a++x), (a++y), (show z))
                                                                where a = lookValue "base" env 
-changeOccurances (Triple (URIExpr x) (URIExpr y) (PlusInt z)) env = ((a++x), (a++y), ("+"++show z))
+changeOccurances (Triple (URIExpr x) (URIExpr y) (PlusInt z)) env = ((a++x), (a++y), (show z))
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (URIExpr x) (URIExpr y) (MinusInt z)) env = ((a++x), (a++y), ("-"++show z))
                                                                where a = lookValue "base" env 
@@ -83,7 +112,7 @@ changeOccurances (Triple (AbsExpr x) (AbsExpr y) (URI z)) env = ((getAbsOutputSt
                                                                where a = lookValue "base" env
 changeOccurances (Triple (AbsExpr x) (AbsExpr y) (Bool z)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z))
 changeOccurances (Triple (AbsExpr x) (AbsExpr y) (Int z)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z))
-changeOccurances (Triple (AbsExpr x) (AbsExpr y) (PlusInt z)) env = ((getAbsOutputString x), (getAbsOutputString y), ("+"++show z))
+changeOccurances (Triple (AbsExpr x) (AbsExpr y) (PlusInt z)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z))
 changeOccurances (Triple (AbsExpr x) (AbsExpr y) (MinusInt z)) env = ((getAbsOutputString x), (getAbsOutputString y), ("-"++show z))
 changeOccurances (Triple (AbsExpr x) (AbsExpr y) (String z)) env = ((getAbsOutputString x), (getAbsOutputString y), (z))
 changeOccurances (Triple (AbsExpr x) (AbsExpr y) (AbsURI z)) env = ((getAbsOutputString x), (getAbsOutputString y), (getAbsOutputString z))
@@ -95,7 +124,7 @@ changeOccurances (Triple (AbsExpr x) (URIExpr y) (Bool z)) env = ((getAbsOutputS
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (AbsExpr x) (URIExpr y) (Int z)) env = ((getAbsOutputString x), (a++y), (show z))
                                                                where a = lookValue "base" env 
-changeOccurances (Triple (AbsExpr x) (URIExpr y) (PlusInt z)) env = ((getAbsOutputString x), (a++y), ("+"++show z))
+changeOccurances (Triple (AbsExpr x) (URIExpr y) (PlusInt z)) env = ((getAbsOutputString x), (a++y), (show z))
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (AbsExpr x) (URIExpr y) (MinusInt z)) env = ((getAbsOutputString x), (a++y), ("-"++show z))
                                                                where a = lookValue "base" env 
@@ -111,7 +140,7 @@ changeOccurances (Triple (URIExpr x) (AbsExpr y) (Bool z)) env = ((a++x), (getAb
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (URIExpr x) (AbsExpr y) (Int z)) env = ((a++x), (getAbsOutputString y), (show z))
                                                                where a = lookValue "base" env 
-changeOccurances (Triple (URIExpr x) (AbsExpr y) (PlusInt z)) env = ((a++x), (getAbsOutputString y), ("+"++show z))
+changeOccurances (Triple (URIExpr x) (AbsExpr y) (PlusInt z)) env = ((a++x), (getAbsOutputString y), (show z))
                                                                where a = lookValue "base" env 
 changeOccurances (Triple (URIExpr x) (AbsExpr y) (MinusInt z)) env = ((a++x), (getAbsOutputString y), ("-"++show z))
                                                                where a = lookValue "base" env 
@@ -140,7 +169,7 @@ changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (Bool z: xs)) env = ((a
 changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (Int z: xs)) env = ((a++x), (a++y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (xs)) env)
                                                                         where a = lookValue "base" env
-changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (PlusInt z: xs)) env = ((a++x), (a++y), ("+"++show z)) :
+changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (PlusInt z: xs)) env = ((a++x), (a++y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (xs)) env)
                                                                         where a = lookValue "base" env                                                                                                        
 changeOccurancesList (ObjMTriple (URIExpr x) (URIExpr y) (MinusInt z: xs)) env = ((a++x), (a++y), ("-"++show z)) :
@@ -163,7 +192,7 @@ changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (Bool z: xs)) env = ((g
 changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (Int z: xs)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (xs)) env)
                                                                         where a = lookValue "base" env
-changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (PlusInt z: xs)) env = ((getAbsOutputString x), (getAbsOutputString y), ("+"++show z)) :
+changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (PlusInt z: xs)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (xs)) env)
                                                                         where a = lookValue "base" env                                                                                                        
 changeOccurancesList (ObjMTriple (AbsExpr x) (AbsExpr y) (MinusInt z: xs)) env = ((getAbsOutputString x), (getAbsOutputString y), ("-"++show z)) :
@@ -186,7 +215,7 @@ changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (Bool z: xs)) env = ((g
 changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (Int z: xs)) env = ((getAbsOutputString x), (a++y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (xs)) env)
                                                                         where a = lookValue "base" env
-changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (PlusInt z: xs)) env = ((getAbsOutputString x), (a++y), ("+"++show z)) :
+changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (PlusInt z: xs)) env = ((getAbsOutputString x), (a++y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (xs)) env)
                                                                         where a = lookValue "base" env                                                                                                        
 changeOccurancesList (ObjMTriple (AbsExpr x) (URIExpr y) (MinusInt z: xs)) env = ((getAbsOutputString x), (a++y), ("-"++show z)) :
@@ -209,7 +238,7 @@ changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (Bool z: xs)) env = ((a
 changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (Int z: xs)) env = ((a++x), (getAbsOutputString y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (xs)) env)
                                                                         where a = lookValue "base" env
-changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (PlusInt z: xs)) env = ((a++x), (getAbsOutputString y), ("+"++show z)) :
+changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (PlusInt z: xs)) env = ((a++x), (getAbsOutputString y), (show z)) :
                                                            (changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (xs)) env)
                                                                         where a = lookValue "base" env                                                                                                        
 changeOccurancesList (ObjMTriple (URIExpr x) (AbsExpr y) (MinusInt z: xs)) env = ((a++x), (getAbsOutputString y), ("-"++show z)) :
@@ -238,7 +267,7 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((Bool z):zs)):y
 changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((Int z):zs)):ys)) env = ((a++x), (a++y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
-changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((PlusInt z):zs)):ys)) env = ((a++x), (a++y), ("+"++show z)) :
+changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((PlusInt z):zs)):ys)) env = ((a++x), (a++y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
 changeOccurancesList (PredObjMTriple (URIExpr x) (((URIExpr y), ((MinusInt z):zs)):ys)) env = ((a++x), (a++y), ("-"++show z)) :
@@ -261,7 +290,7 @@ changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((Bool z):zs)):y
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
 changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((Int z):zs)):ys)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
-changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = ((getAbsOutputString x), (getAbsOutputString y), ("+"++show z)) :
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = ((getAbsOutputString x), (getAbsOutputString y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
 changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), ((MinusInt z):zs)):ys)) env = ((getAbsOutputString x), (getAbsOutputString y), ("-"++show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((AbsExpr y), (zs)):ys)) env)
@@ -282,7 +311,7 @@ changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((Bool z):zs)):y
 changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((Int z):zs)):ys)) env = ((getAbsOutputString x), (a++y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
-changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((PlusInt z):zs)):ys)) env = ((getAbsOutputString x), (a++y), ("+"++show z)) :
+changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((PlusInt z):zs)):ys)) env = ((getAbsOutputString x), (a++y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
 changeOccurancesList (PredObjMTriple (AbsExpr x) (((URIExpr y), ((MinusInt z):zs)):ys)) env = ((getAbsOutputString x), (a++y), ("-"++show z)) :
@@ -306,7 +335,7 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((Bool z):zs)):y
 changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((Int z):zs)):ys)) env = ((a++x), (getAbsOutputString y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
-changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = ((a++x), (getAbsOutputString y), ("+"++show z)) :
+changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((PlusInt z):zs)):ys)) env = ((a++x), (getAbsOutputString y), (show z)) :
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env
 changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((MinusInt z):zs)):ys)) env = ((a++x), (getAbsOutputString y), ("-"++show z)) :
@@ -319,6 +348,5 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs))
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env   
 
--- helper function for AbsExp pretty print
 getAbsOutputString :: String -> String
 getAbsOutputString a = "http://" ++ a
