@@ -9,24 +9,24 @@ $alpha = [a-zA-Z]
 -- alphabetic characters
 
 tokens :-
- $white+                                   ; 
- "--".*                                    ;
- true                                      {\s -> TokenTrue}
- false                                     {\s -> TokenFalse}
- \,                                        {\s -> TokenComma}
- \:                                        {\s -> TokenColon}
- \@base                                    {\s -> TokenBase s}
- \@prefix                                  {\s -> TokenPrefix s}
- \<                                        {\s -> TokenLURIBracket}
- \>                                        {\s -> TokenRURIBracket}
- \.                                        {\s -> TokenDot}
- \;                                        {\s -> TokenSemiColon}
- \"                                        {\s -> TokenParen}
- \-                                        {\s -> TokenMinus}
- \+                                        {\s -> TokenPlus}
- "http://"                                 {\s -> TokenAbsolute}
- $alpha [$alpha $digit \_ \â€™\/\.\#]*     {\s -> TokenString s} 
- $digit+                                   {\s -> TokenInt (read s)} 
+ $white+                                                           ; 
+ "--".*                                                            ;
+ true                                                              {\s -> TokenTrue}
+ false                                                             {\s -> TokenFalse}
+ \,                                                                {\s -> TokenComma}
+ \:                                                                {\s -> TokenColon}
+ \@base                                                            {\s -> TokenBase s}
+ \@prefix                                                          {\s -> TokenPrefix s}
+ \<                                                                {\s -> TokenLURIBracket}
+ \>                                                                {\s -> TokenRURIBracket}
+ \.                                                                {\s -> TokenDot}
+ \;                                                                {\s -> TokenSemiColon}
+ \"                                                                {\s -> TokenParen}
+ \-                                                                {\s -> TokenMinus}
+ \+                                                                {\s -> TokenPlus}
+ "http://"                                                         {\s -> TokenAbsolute}
+ [$digit \_ \â€™\/\.\#]* $alpha [$alpha $digit \_ \â€™\/\.\#]*     {\s -> TokenString s} 
+ $digit+                                                           {\s -> TokenInt (read s)} 
  
  
 { 

@@ -42,4 +42,3 @@ p:subjectE r:predicateE q:objectE .
 <prob4A> <testPredA> <prob4B> .
 <prob4C> <testPredB> <prob4D> .
 <prob4E> <testPredC> <prob4F> .
-
