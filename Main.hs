@@ -4,12 +4,23 @@ import RQLGrammar
 import Data.List
 import Data.Char
 
+import RQLQTokens
+import RQLQGrammar
+
+type Env = [(String, String)]
+
 main :: IO ()
 main = do
           x <- getArgs
-          y <- readFile (head x)
-          writeFile "testOutput.ttl" (prettyPrint(filterDuplicates(sortBy sortAlph (changeOccurancesLoop ((parseCalc . alexScanTokens) y) ((parseCalc . alexScanTokens) y)))))
+          z <- readFile (head x)
+          --env <- (findQAliasLoop ((parseQuery . RQLQTokens.alexScanTokens) z))
+          --parsedTree <- (parseQuery . RQLQTokens.alexScanTokens) z
+          writeFile "testOutputRQLQ.txt" (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (findQAliasLoop ((parseQuery . RQLQTokens.alexScanTokens) z)))
+          --print $ (parseQuery . RQLQTokens.alexScanTokens) z
+          --writeFile "testOutputRQLQ.txt" (show ((parseQuery . RQLQTokens.alexScanTokens) z))
+          --print $ (getTriplesFromFile z)
 
+-- Turtle Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 prettyPrint :: [(String, String, String)] -> String
 prettyPrint [] = []
 prettyPrint (x:xs) | (take 7 (tripleTrd x)) == "http://" = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "><" ++ (tripleTrd x) ++ "> .\n" ++ (prettyPrint xs)
@@ -80,7 +91,7 @@ lookValue a [] = error "non existing variable"
 lookValue a (x:xs) | a == (fst(x)) = snd(x)
                    | otherwise = lookValue a xs
 
-changeOccurancesLoop :: [TurtleExp] -> [TurtleExp]-> [(String, String, String)]
+changeOccurancesLoop :: [TurtleExp] -> [TurtleExp] -> [(String, String, String)]
 changeOccurancesLoop [] copy = []
 changeOccurancesLoop ((Base (AbsExpr e)):xs) copy = changeOccurancesLoop xs copy
 changeOccurancesLoop ((Prefix (pr) (AbsExpr e)):xs) copy = changeOccurancesLoop xs copy
@@ -350,3 +361,30 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs))
 
 getAbsOutputString :: String -> String
 getAbsOutputString a = "http://" ++ a
+
+
+
+-- Query Handle ------------------------------------------------------------------------------------------------------------------------------------------------------
+findQAliasLoop :: [Query] -> Env
+findQAliasLoop [] = []
+findQAliasLoop ((Select (Alias xs)) : expr) = xs ++ findQAliasLoop expr
+findQAliasLoop (_:xs) = findQAliasLoop xs
+--findQAliasLoop (e:expr) = findQAlias e : findQAliasLoop expr
+
+loopQuery :: [Query] -> Env -> String
+loopQuery [] env = []
+loopQuery ((Print [x]):xs) env = (getTriplesFromFile(lookValue x env)) ++ "\n" ++ (loopQuery xs env)
+loopQuery ((Print (x:xs)):ys) env = (getTriplesFromFile(lookValue x env)) ++ "\n" ++ (loopQuery ((Print xs):ys) env)
+loopQuery (_:xs) env = loopQuery xs env
+--loopQuery (Where condition) = checkCondition $ getTriplesFromFile
+
+--executePrintQuery x = saveToFile x
+--checkCondition -> Bool
+
+ask :: String -> IO String
+ask s = do
+          putStrLn s
+          getLine
+
+getTriplesFromFile :: String -> String
+getTriplesFromFile s = (prettyPrint(filterDuplicates(sortBy sortAlph (changeOccurancesLoop ((parseCalc . RQLTokens.alexScanTokens) (s)) ((parseCalc . RQLTokens.alexScanTokens) (s))))))

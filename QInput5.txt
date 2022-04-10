@@ -1,7 +1,7 @@
-SELECT foo
-WHERE object IS NOT BETWEEN (-1, +99) AS a
+SELECT foo AS c
+WHERE c$object IS NOT BETWEEN (-1, +99) AS a
 UPDATE a$object TO false
-WHERE object IS BETWEEN (0, 10) AS b
+WHERE c$object IS BETWEEN (0, 10) AS b
 UPDATE b$object TO true
 PRINT a,b;
 

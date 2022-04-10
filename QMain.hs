@@ -7,4 +7,4 @@ main = do
           x <- getArgs
           y <- readFile (head x)
           --print $ alexScanTokens y
-          print $ (parseQuery . alexScanTokens) y
+          print $ (parseQuery . RQLQTokens.alexScanTokens) y

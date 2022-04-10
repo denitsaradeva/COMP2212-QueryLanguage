@@ -536,7 +536,7 @@ happyReduction_11 (HappyTerminal (TokenString happy_var_3))
 	_
 	(HappyTerminal (TokenString happy_var_1))
 	 =  HappyAbsSyn8
-		 ([(happy_var_1,happy_var_3)]
+		 ([(happy_var_3,happy_var_1)]
 	)
 happyReduction_11 _ _ _  = notHappyAtAll 
 
@@ -548,7 +548,7 @@ happyReduction_12 ((HappyAbsSyn8  happy_var_5) `HappyStk`
 	(HappyTerminal (TokenString happy_var_1)) `HappyStk`
 	happyRest)
 	 = HappyAbsSyn8
-		 (((happy_var_1,happy_var_3):happy_var_5)
+		 (((happy_var_3,happy_var_1):happy_var_5)
 	) `HappyStk` happyRest
 
 happyReduce_13 = happySpecReduce_3  9 happyReduction_13
@@ -749,7 +749,7 @@ happyReduction_30 _ _ _  = notHappyAtAll
 happyReduce_31 = happySpecReduce_1  14 happyReduction_31
 happyReduction_31 (HappyTerminal (TokenInt happy_var_1))
 	 =  HappyAbsSyn14
-		 (Int happy_var_1
+		 (QInt happy_var_1
 	)
 happyReduction_31 _  = notHappyAtAll 
 
@@ -757,7 +757,7 @@ happyReduce_32 = happySpecReduce_2  14 happyReduction_32
 happyReduction_32 (HappyTerminal (TokenInt happy_var_2))
 	_
 	 =  HappyAbsSyn14
-		 (MinusInt happy_var_2
+		 (QMinusInt happy_var_2
 	)
 happyReduction_32 _ _  = notHappyAtAll 
 
@@ -765,7 +765,7 @@ happyReduce_33 = happySpecReduce_2  14 happyReduction_33
 happyReduction_33 (HappyTerminal (TokenInt happy_var_2))
 	_
 	 =  HappyAbsSyn14
-		 (PlusInt happy_var_2
+		 (QPlusInt happy_var_2
 	)
 happyReduction_33 _ _  = notHappyAtAll 
 
@@ -774,20 +774,20 @@ happyReduction_34 _
 	(HappyTerminal (TokenString happy_var_2))
 	_
 	 =  HappyAbsSyn14
-		 (String happy_var_2
+		 (QString happy_var_2
 	)
 happyReduction_34 _ _ _  = notHappyAtAll 
 
 happyReduce_35 = happySpecReduce_1  14 happyReduction_35
 happyReduction_35 _
 	 =  HappyAbsSyn14
-		 (Bool True
+		 (QBool True
 	)
 
 happyReduce_36 = happySpecReduce_1  14 happyReduction_36
 happyReduction_36 _
 	 =  HappyAbsSyn14
-		 (Bool False
+		 (QBool False
 	)
 
 happyReduce_37 = happySpecReduce_1  15 happyReduction_37
@@ -927,11 +927,11 @@ data Triplet = Subject
              | Object
            deriving Show
 
-data LiteralType = Int Int
-                 | MinusInt Int
-                 | PlusInt Int
-                 | String String
-                 | Bool Bool
+data LiteralType = QInt Int
+                 | QMinusInt Int
+                 | QPlusInt Int
+                 | QString String
+                 | QBool Bool
                deriving Show
 {-# LINE 1 "templates/GenericTemplate.hs" #-}
 -- $Id: GenericTemplate.hs,v 1.26 2005/01/14 14:47:22 simonmar Exp $

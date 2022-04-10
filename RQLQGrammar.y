@@ -55,8 +55,8 @@ SelectQue : ResourceQue                  {Resource $1}
 ResourceQue : str                        {[$1]}
             | str comma ResourceQue      {($1:$3)}
 
-AliasQue : str AS str                    {[($1,$3)]}
-         | str AS str comma AliasQue     {(($1,$3):$5)}
+AliasQue : str AS str                    {[($3,$1)]}
+         | str AS str comma AliasQue     {(($3,$1):$5)}
 
 ----------------------------------------------------------------------------------------------
 GeneralWhereQue : WhereQue AS str                            {WhereExp ($1,$3)}
@@ -85,12 +85,12 @@ PrintQue : str semiColon                 {[$1]}
          | str comma PrintQue            {($1:$3)}
 
 ----------------------------------------------------------------------------------------------
-Literal : int                            {Int $1}
-        | minus int                      {MinusInt $2}
-        | plus int                       {PlusInt $2}
-        | paren str paren                {String $2}
-        | true                           {Bool True}
-        | false                          {Bool False}
+Literal : int                            {QInt $1}
+        | minus int                      {QMinusInt $2}
+        | plus int                       {QPlusInt $2}
+        | paren str paren                {QString $2}
+        | true                           {QBool True}
+        | false                          {QBool False}
 
 Triplets : subject                       {Subject}
          | predicate                     {Predicate}
@@ -143,10 +143,10 @@ data Triplet = Subject
              | Object
            deriving Show
 
-data LiteralType = Int Int
-                 | MinusInt Int
-                 | PlusInt Int
-                 | String String
-                 | Bool Bool
+data LiteralType = QInt Int
+                 | QMinusInt Int
+                 | QPlusInt Int
+                 | QString String
+                 | QBool Bool
                deriving Show
 } 
