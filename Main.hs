@@ -8,17 +8,49 @@ import RQLQTokens
 import RQLQGrammar
 
 type Env = [(String, String)]
+type TurtleEnv = [(String, [(String,String,String)])]
 
 main :: IO ()
 main = do
           x <- getArgs
           z <- readFile (head x)
-          --env <- (findQAliasLoop ((parseQuery . RQLQTokens.alexScanTokens) z))
-          --parsedTree <- (parseQuery . RQLQTokens.alexScanTokens) z
-          writeFile "testOutputRQLQ.txt" (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (findQAliasLoop ((parseQuery . RQLQTokens.alexScanTokens) z)))
-          --print $ (parseQuery . RQLQTokens.alexScanTokens) z
-          --writeFile "testOutputRQLQ.txt" (show ((parseQuery . RQLQTokens.alexScanTokens) z))
-          --print $ (getTriplesFromFile z)
+          y <- loopNames (scanForFileNames ((parseQuery . RQLQTokens.alexScanTokens) z)) --environment/memory
+          writeFile "testOutputRQLQ.txt" (prettyPrint (filterDuplicates(sortBy sortAlph (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (y)))))
+
+-- Query Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+lookTurtleValue :: String -> TurtleEnv -> [(String,String,String)]
+lookTurtleValue a [] = error "non existing variable"
+lookTurtleValue a (x:xs) | a == (fst (x)) = snd (x)
+                         | otherwise = lookTurtleValue a xs
+
+loopQuery :: [Query] -> TurtleEnv -> [(String, String, String)]
+loopQuery [] env = []
+loopQuery ((Print [x]):xs) env = (lookTurtleValue x env) ++ (loopQuery xs env)
+loopQuery ((Print (x:xs)):ys) env = (lookTurtleValue x env) ++ (loopQuery ((Print xs):ys) env)
+loopQuery (_:xs) env = loopQuery xs env
+
+scanForFileNames :: [Query] ->  [(String,String)]
+scanForFileNames [] = []
+scanForFileNames ((Select (Alias [])):xs ) = []
+scanForFileNames ((Select (Alias (a:ys))):xs) = (((fst a), (snd a)) : (scanForFileNames (((Select (Alias (ys))):xs))))
+scanForFileNames (_ :xs) = []
+
+readQFile :: FilePath -> IO String
+readQFile fileName = do 
+                        text <- readFile fileName
+                        return text
+
+loopNames :: [(String,String)] -> IO TurtleEnv
+loopNames [] = return []
+loopNames (file:fileNames) = do
+                               y <- readQFile (snd file)
+                               z <- (ask ((fst file), (changeOccurancesLoop((parseCalc . RQLTokens.alexScanTokens) (y)) ((parseCalc . RQLTokens.alexScanTokens) (y))))) --IO [(String, String, String)]
+                               x <- (loopNames fileNames) -- IO [(String, String, String)]
+                               return (z : x)
+ask :: (String, [(String,String,String)]) -> IO (String, [(String,String,String)])
+ask s = return s
 
 -- Turtle Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 prettyPrint :: [(String, String, String)] -> String
@@ -50,11 +82,17 @@ tripleSnd (x,y,z) = y
 tripleFst :: (a,a,a) -> a
 tripleFst (x,y,z) = x
 
-sortAlph :: (Ord a1, Ord a2) => (a1, a2, c1) -> (a1, a2, c2) -> Ordering
+sortAlph :: (Ord a1, Ord a2, Ord a3) => (a1, a2, a3) -> (a1, a2, a3) -> Ordering
 sortAlph (a, b, c) (x, y, z)
   | a < x = LT
   | a > x = GT
-  | a == x = compare b y
+  | a == x = sortBeta (a, b, c) (x, y, z)
+
+sortBeta :: (Ord a2, Ord a3) => (b1, a2, a3) -> (b2, a2, a3) -> Ordering
+sortBeta (a, b, c) (x, y, z)
+  | b < y = LT
+  | b > y = GT
+  | b == y = compare c z
 
 removeEmptyTriples :: [(String, String)] -> [(String, String)]
 removeEmptyTriples [] = []
@@ -361,30 +399,3 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs))
 
 getAbsOutputString :: String -> String
 getAbsOutputString a = "http://" ++ a
-
-
-
--- Query Handle ------------------------------------------------------------------------------------------------------------------------------------------------------
-findQAliasLoop :: [Query] -> Env
-findQAliasLoop [] = []
-findQAliasLoop ((Select (Alias xs)) : expr) = xs ++ findQAliasLoop expr
-findQAliasLoop (_:xs) = findQAliasLoop xs
---findQAliasLoop (e:expr) = findQAlias e : findQAliasLoop expr
-
-loopQuery :: [Query] -> Env -> String
-loopQuery [] env = []
-loopQuery ((Print [x]):xs) env = (getTriplesFromFile(lookValue x env)) ++ "\n" ++ (loopQuery xs env)
-loopQuery ((Print (x:xs)):ys) env = (getTriplesFromFile(lookValue x env)) ++ "\n" ++ (loopQuery ((Print xs):ys) env)
-loopQuery (_:xs) env = loopQuery xs env
---loopQuery (Where condition) = checkCondition $ getTriplesFromFile
-
---executePrintQuery x = saveToFile x
---checkCondition -> Bool
-
-ask :: String -> IO String
-ask s = do
-          putStrLn s
-          getLine
-
-getTriplesFromFile :: String -> String
-getTriplesFromFile s = (prettyPrint(filterDuplicates(sortBy sortAlph (changeOccurancesLoop ((parseCalc . RQLTokens.alexScanTokens) (s)) ((parseCalc . RQLTokens.alexScanTokens) (s))))))
