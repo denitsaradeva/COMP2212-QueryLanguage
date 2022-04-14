@@ -49,36 +49,24 @@ Que : SELECT SelectQue                   {Select $2}
     | PRINT PrintQue                     {Print $2}
 
 ----------------------------------------------------------------------------------------------
-SelectQue : ResourceQue                  {Resource $1}
-          | AliasQue                     {Alias $1}
 
-ResourceQue : str                        {[$1]}
-            | str comma ResourceQue      {($1:$3)}
-
-AliasQue : str AS str                    {[($3,$1)]}
-         | str AS str comma AliasQue     {(($3,$1):$5)}
+SelectQue : str AS str                    {[($3,$1)]}
+          | str AS str comma SelectQue     {(($3,$1):$5)}
 
 ----------------------------------------------------------------------------------------------
-GeneralWhereQue : WhereQue AS str                            {WhereExp ($1,$3)}
+GeneralWhereQue : WhereQue AS str                            {($3,$1)}
 
 WhereQue : NormalWhereQue                                    {NormalWhereRequest $1}
          | WhereQue OR WhereQue                              {OrWhereRequest $1 $3}
          | WhereQue AND WhereQue                             {AndWhereRequest $1 $3}
 
-NormalWhereQue : subject IS StringExp                                                {IsSubject $3}
-               | predicate IS StringExp                                           {IsPredicate $3}
-               | object IS Literal                                                {IsObject $3}
-               | str dollar object IS Literal                                     {IsAliasLit ($1, Object) $5}
-               | str dollar Triplets IS StringExp                                  {IsAliasStr ($1, $3) $5}
-               | str dollar Triplets IS str dollar Triplets                        {IsAlias ($1, $3) ($5, $7)}
-               | object IS BETWEEN lBracket Literal comma Literal rBracket                  {IsBetween ($5, $7)}
-               | object IS NOT BETWEEN lBracket Literal comma Literal rBracket              {IsNotBetween ($6, $8)}
-               | str dollar object IS BETWEEN lBracket Literal comma Literal rBracket       {IsBetweenAlias ($1, Object) ($7, $9)}
-               | str dollar object IS NOT BETWEEN lBracket Literal comma Literal rBracket   {IsNotBetweenAlias ($1, Object) ($8, $10)}
+NormalWhereQue : str dollar Triplets IS Literal                                      {IsLit ($1, $3) $5}
+               | str dollar Triplets IS str dollar Triplets                        {Is ($1, $3) ($5, $7)}
+               | str dollar Triplets IS BETWEEN lBracket Literal comma Literal rBracket       {IsBetween ($1, $3) ($7, $9)}
+               | str dollar Triplets IS NOT BETWEEN lBracket Literal comma Literal rBracket   {IsNotBetween ($1, $3) ($8, $10)}
 
 ----------------------------------------------------------------------------------------------
-UpdateQue : object TO Literal                {Updated $3}
-          | str dollar object TO Literal     {UpdatedAlias ($1, $5)}
+UpdateQue : str dollar object TO Literal     {($1, $5)}
 
 ----------------------------------------------------------------------------------------------
 PrintQue : str semiColon                 {[$1]}
@@ -96,47 +84,28 @@ Triplets : subject                       {Subject}
          | predicate                     {Predicate}
          | object                        {Object}
 
-StringExp : paren str paren              {$2}
-
 { 
 
 parseError :: [RQLQToken] -> a
 parseError ts = error ("Error on tokens: " ++ (show ts))
 
 
-data Query = Select SelectType
-           | Where WhereExp
-           | Update UpdateExp
+data Query = Select [(String, String)]
+           | Where (String, WhereType)
+           | Update (String, LiteralType)
            | Print [String]
         deriving Show
-
-data SelectType = Alias [(String, String)]
-                | Resource [String]
-            deriving Show
-
-data WhereExp = WhereExp (WhereType, String)
-           deriving Show
 
 data WhereType = NormalWhereRequest ConditionalType
                | OrWhereRequest WhereType WhereType
                | AndWhereRequest WhereType WhereType
             deriving Show
 
-data ConditionalType = IsSubject String 
-                     | IsPredicate String
-                     | IsObject LiteralType
-                     | IsAlias (String, Triplet) (String, Triplet)
-                     | IsAliasLit (String, Triplet) LiteralType
-                     | IsAliasStr (String, Triplet) String
-                     | IsBetween (LiteralType, LiteralType)
-                     | IsBetweenAlias (String, Triplet) (LiteralType, LiteralType)
-                     | IsNotBetween (LiteralType, LiteralType)
-                     | IsNotBetweenAlias (String, Triplet) (LiteralType, LiteralType)
+data ConditionalType = Is (String, Triplet) (String, Triplet)
+                     | IsLit (String, Triplet) LiteralType
+                     | IsBetween (String, Triplet) (LiteralType, LiteralType)
+                     | IsNotBetween (String, Triplet) (LiteralType, LiteralType)
                 deriving Show
-
-data UpdateExp = Updated LiteralType
-               | UpdatedAlias (String, LiteralType)
-            deriving Show
 
 data Triplet = Subject
              | Predicate

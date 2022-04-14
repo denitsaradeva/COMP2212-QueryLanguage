@@ -8,7 +8,7 @@ import RQLQTokens
 import RQLQGrammar
 
 type Env = [(String, String)]
-type TurtleEnv = [(String, [(String,String,String)])]
+type TurtleEnv = [(String, [(String, String, String)])]
 
 main :: IO ()
 main = do
@@ -20,21 +20,36 @@ main = do
 -- Query Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-lookTurtleValue :: String -> TurtleEnv -> [(String,String,String)]
+lookTurtleValue :: String -> TurtleEnv -> [(String, String, String)]
 lookTurtleValue a [] = error "non existing variable"
 lookTurtleValue a (x:xs) | a == (fst (x)) = snd (x)
                          | otherwise = lookTurtleValue a xs
 
 loopQuery :: [Query] -> TurtleEnv -> [(String, String, String)]
 loopQuery [] env = []
+loopQuery ((Where x):ys) env = loopQuery ys (filterConditionals (fst x) (snd x) env)
 loopQuery ((Print [x]):xs) env = (lookTurtleValue x env) ++ (loopQuery xs env)
 loopQuery ((Print (x:xs)):ys) env = (lookTurtleValue x env) ++ (loopQuery ((Print xs):ys) env)
 loopQuery (_:xs) env = loopQuery xs env
 
-scanForFileNames :: [Query] ->  [(String,String)]
+filterConditionals :: String -> WhereType -> TurtleEnv -> TurtleEnv
+filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredTriples a b env)) : env
+
+-- puskame a b ++ b a shtoto fixTriples vrushta samo ot ediniq fail i kato go oburnem vrushtame i ot drugiq
+-- ima nqkuv shans da moje vmesto Subject Subject da e samo Triplet, no za sledvashtiq put
+getFilteredTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
+getFilteredTriples (n1, Subject) (n2, Subject) env = (fixTriples Subject a Subject b) ++ (fixTriples Subject b Subject a)
+                                                  where a = lookTurtleValue n1 env
+                                                        b = lookTurtleValue n2 env
+
+fixTriples :: Triplet -> [(String, String, String)] -> Triplet -> [(String, String, String)] -> [(String, String, String)]
+fixTriples Subject [] Subject ys = []
+fixTriples Subject (x:xs) Subject ys = (filter ((==(tripleFst x)).tripleFst) ys) ++ (fixTriples Subject xs Subject ys)
+
+scanForFileNames :: [Query] ->  [(String, String)]
 scanForFileNames [] = []
-scanForFileNames ((Select (Alias [])):xs ) = []
-scanForFileNames ((Select (Alias (a:ys))):xs) = (((fst a), (snd a)) : (scanForFileNames (((Select (Alias (ys))):xs))))
+scanForFileNames ((Select []):xs) = []
+scanForFileNames ((Select (a:ys)):xs) = (((fst a), (snd a)) : (scanForFileNames (((Select (ys)):xs))))
 scanForFileNames (_ :xs) = []
 
 readQFile :: FilePath -> IO String
@@ -42,13 +57,14 @@ readQFile fileName = do
                         text <- readFile fileName
                         return text
 
-loopNames :: [(String,String)] -> IO TurtleEnv
+loopNames :: [(String, String)] -> IO TurtleEnv
 loopNames [] = return []
 loopNames (file:fileNames) = do
                                y <- readQFile (snd file)
                                z <- (ask ((fst file), (changeOccurancesLoop((parseCalc . RQLTokens.alexScanTokens) (y)) ((parseCalc . RQLTokens.alexScanTokens) (y))))) --IO [(String, String, String)]
                                x <- (loopNames fileNames) -- IO [(String, String, String)]
                                return (z : x)
+
 ask :: (String, [(String,String,String)]) -> IO (String, [(String,String,String)])
 ask s = return s
 
