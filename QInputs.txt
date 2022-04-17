@@ -1,3 +1,4 @@
 SELECT foo.ttl AS a, bar.ttl AS b
-WHERE a$subject IS b$object AS c
-PRINT c;
+WHERE a$object IS NOT BETWEEN (-5,9) AS c
+WHERE b$subject IS a$subject AS d
+PRINT c, d;

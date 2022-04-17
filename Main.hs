@@ -35,6 +35,8 @@ loopQuery (_:xs) env = loopQuery xs env
 filterConditionals :: String -> WhereType -> TurtleEnv -> TurtleEnv
 filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredIsTriples a b env)) : env
 filterConditionals name (NormalWhereRequest (IsLit a b)) env = (name, (getFilteredIsLitTriples a b env)) : env
+filterConditionals name (NormalWhereRequest (IsBetween a b)) env = (name, (getFilteredBetweenTriples a b env)) : env
+filterConditionals name (NormalWhereRequest (IsNotBetween a b)) env = (name, (getFilteredNotBetweenTriples a b env)) : env
 
 getFilteredIsTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
 getFilteredIsTriples (n1, t1) (n2, t2) env = (fixTriples t1 a t2 b) ++ (fixTriples t2 b t1 a)
@@ -44,6 +46,19 @@ getFilteredIsTriples (n1, t1) (n2, t2) env = (fixTriples t1 a t2 b) ++ (fixTripl
 getFilteredIsLitTriples :: (String, Triplet) -> LiteralType -> TurtleEnv -> [(String, String, String)]
 getFilteredIsLitTriples (n1, t1) l env = (fixTriples' t1 a l)
                                                   where a = lookTurtleValue n1 env
+
+getFilteredBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> [(String, String, String)]
+getFilteredBetweenTriples (n1, t1) (l, r) env = (fixTriples'' l r a)
+                                                       where a = filterNumberObject $ lookTurtleValue n1 env
+
+getFilteredNotBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> [(String, String, String)]
+getFilteredNotBetweenTriples (n1, t1) (l, r) env = (fixTriples''' l r a)
+                                                       where a = filterNumberObject $ lookTurtleValue n1 env
+
+filterNumberObject :: [(String, String, String)] -> [(String, String, String)]
+filterNumberObject [] = []
+filterNumberObject (x:xs) | isInt (tripleTrd x) = x : filterNumberObject xs
+                          | otherwise = filterNumberObject xs
 
 fixTriples :: Triplet -> [(String, String, String)] -> Triplet -> [(String, String, String)] -> [(String, String, String)]
 fixTriples t1 [] t2 [] = error "Empty inputs"
@@ -69,12 +84,54 @@ fixTriples Object (x:xs) Predicate ys = (filter ((==(tripleTrd x)).tripleSnd) ys
 fixTriples Object [] Object ys = []
 fixTriples Object (x:xs) Object ys = (filter ((==(tripleTrd x)).tripleTrd) ys) ++ (fixTriples Object xs Object ys)
 
--- fixes triples for IsLit case
---fixTriples' :: Triplet -> [(String, String, String)] -> LiteralType -> [(String, String, String)]
---fixTriples' t1 [] l = []
---fixTriples' Subject (x:xs) (QString l) = (filter (==(tripleFst x)) l) ++ (fixTriples' Subject xs (QString l))
---fixTriples' Predicate (x:xs) (QString l) = (filter (==(tripleSnd x)) l) ++ (fixTriples' Predicate xs (QString l))
---fixTriples' Object (x:xs) (QString l) = (filter (==(tripleTrd x)) l) ++ (fixTriples' Object xs (QString l))
+--fixes triples for IsLit case
+fixTriples' :: Triplet -> [(String, String, String)] -> LiteralType -> [(String, String, String)]
+fixTriples' t1 [] l = []
+fixTriples' Subject xs (QString l) = (filter ((==(l)).tripleFst) xs)
+fixTriples' Predicate xs (QString l) = (filter ((==(l)).tripleSnd) xs)
+fixTriples' Object xs (QString l) = (filter ((==(l)).tripleTrd) xs)
+fixTriples' Object xs (QBool l) = (filter ((==(show l)).tripleTrd) xs)
+fixTriples' Object xs (QInt l) = (filter ((==(show l)).tripleTrd) xs)
+fixTriples' Object xs (QPlusInt l) = (filter ((==(show l)).tripleTrd) xs)
+fixTriples' Object xs (QMinusInt l) = (filter ((==("-"++show l)).tripleTrd) xs)
+fixTriples' t1 xs l = error "Invalid input"
+
+fixTriples'' :: LiteralType -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
+fixTriples'' l1 l2 [] = []
+fixTriples'' (QInt a) (QInt b) xs | a > b = error "Invalid range"
+                                  | otherwise =  filter ((>=a) . (read')) (filter (((<=b) . (read'))) xs)
+fixTriples'' (QMinusInt a) (QInt b) xs = filter ((>=(negate a)) . (read')) (filter (((<=b) . (read'))) xs) --no need for range checking
+fixTriples'' (QMinusInt a) (QMinusInt b) xs | negate a > negate b = error "Invalid range"
+                                            | otherwise =  filter ((>=(negate a)) . (read')) (filter (((<=(negate b)) . (read'))) xs)
+fixTriples'' (QInt a) (QPlusInt b) xs | a > b = error "Invalid range"
+                                      | otherwise =  filter ((>=a) . (read')) (filter (((<=b) . (read'))) xs)
+fixTriples'' (QPlusInt a) (QPlusInt b) xs  | a > b = error "Invalid range"
+                                           | otherwise =  filter ((>=a) . (read')) (filter (((<=b) . (read'))) xs)
+fixTriples'' (QMinusInt a) (QPlusInt b) xs = filter ((>=(negate a)) . (read')) (filter (((<=b) . (read'))) xs) --no need for range checking
+fixTriples'' (QPlusInt a) (QInt b) xs  | a > b = error "Invalid range"
+                                       | otherwise =  filter ((>=a) . (read')) (filter (((<=b) . (read'))) xs)
+fixTriples'' l1 l2 xs = error "Invalid range"
+
+fixTriples''' :: LiteralType -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
+fixTriples''' l1 l2 [] = []
+fixTriples''' (QInt a) (QInt b) xs | a > b = error "Invalid range"
+                                   | otherwise = filter ((<a) . (read')) xs ++ filter ((>b) . (read')) xs 
+fixTriples''' (QMinusInt a) (QInt b) xs = filter ((<(negate a)) . (read')) xs ++ filter ((>b) . (read')) xs  --no need for range checking
+fixTriples''' (QMinusInt a) (QMinusInt b) xs | negate a > negate b = error "Invalid range"
+                                             | otherwise =  filter ((<(negate a)) . (read')) xs ++ filter ((>(negate b)) . (read')) xs
+fixTriples''' (QInt a) (QPlusInt b) xs | a > b = error "Invalid range"
+                                       | otherwise =  filter ((<a) . (read')) xs ++ filter ((>b) . (read')) xs 
+fixTriples''' (QPlusInt a) (QPlusInt b) xs  | a > b = error "Invalid range"
+                                            | otherwise =  filter ((<a) . (read')) xs ++ filter ((>b) . (read')) xs 
+fixTriples''' (QMinusInt a) (QPlusInt b) xs = filter ((<(negate a)) . (read')) xs ++ filter ((>b) . (read')) xs --no need for range checking
+fixTriples''' (QPlusInt a) (QInt b) xs  | a > b = error "Invalid range"
+                                        | otherwise =  filter ((<a) . (read')) xs ++ filter ((>b) . (read')) xs 
+fixTriples''' l1 l2 xs = error "Invalid range"
+
+--find error case
+read' :: (String, String, String) -> Int
+read' x = read (tripleTrd x) :: Int 
+
 
 scanForFileNames :: [Query] ->  [(String, String)]
 scanForFileNames [] = []
