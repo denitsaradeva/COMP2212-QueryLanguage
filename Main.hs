@@ -33,18 +33,48 @@ loopQuery ((Print (x:xs)):ys) env = (lookTurtleValue x env) ++ (loopQuery ((Prin
 loopQuery (_:xs) env = loopQuery xs env
 
 filterConditionals :: String -> WhereType -> TurtleEnv -> TurtleEnv
-filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredTriples a b env)) : env
+filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredIsTriples a b env)) : env
+filterConditionals name (NormalWhereRequest (IsLit a b)) env = (name, (getFilteredIsLitTriples a b env)) : env
 
--- puskame a b ++ b a shtoto fixTriples vrushta samo ot ediniq fail i kato go oburnem vrushtame i ot drugiq
--- ima nqkuv shans da moje vmesto Subject Subject da e samo Triplet, no za sledvashtiq put
-getFilteredTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
-getFilteredTriples (n1, Subject) (n2, Subject) env = (fixTriples Subject a Subject b) ++ (fixTriples Subject b Subject a)
+getFilteredIsTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
+getFilteredIsTriples (n1, t1) (n2, t2) env = (fixTriples t1 a t2 b) ++ (fixTriples t2 b t1 a)
                                                   where a = lookTurtleValue n1 env
                                                         b = lookTurtleValue n2 env
 
+getFilteredIsLitTriples :: (String, Triplet) -> LiteralType -> TurtleEnv -> [(String, String, String)]
+getFilteredIsLitTriples (n1, t1) l env = (fixTriples' t1 a l)
+                                                  where a = lookTurtleValue n1 env
+
 fixTriples :: Triplet -> [(String, String, String)] -> Triplet -> [(String, String, String)] -> [(String, String, String)]
+fixTriples t1 [] t2 [] = error "Empty inputs"
+
 fixTriples Subject [] Subject ys = []
 fixTriples Subject (x:xs) Subject ys = (filter ((==(tripleFst x)).tripleFst) ys) ++ (fixTriples Subject xs Subject ys)
+fixTriples Subject [] Predicate ys = []
+fixTriples Subject (x:xs) Predicate ys = (filter ((==(tripleFst x)).tripleSnd) ys) ++ (fixTriples Subject xs Predicate ys)
+fixTriples Subject [] Object ys = []
+fixTriples Subject (x:xs) Object ys = (filter ((==(tripleFst x)).tripleTrd) ys) ++ (fixTriples Subject xs Object ys)
+
+fixTriples Predicate [] Subject ys = []
+fixTriples Predicate (x:xs) Subject ys = (filter ((==(tripleSnd x)).tripleFst) ys) ++ (fixTriples Predicate xs Subject ys)
+fixTriples Predicate [] Predicate ys = []
+fixTriples Predicate (x:xs) Predicate ys = (filter ((==(tripleSnd x)).tripleSnd) ys) ++ (fixTriples Predicate xs Predicate ys)
+fixTriples Predicate [] Object ys = []
+fixTriples Predicate (x:xs) Object ys = (filter ((==(tripleSnd x)).tripleTrd) ys) ++ (fixTriples Predicate xs Object ys)
+
+fixTriples Object [] Subject ys = []
+fixTriples Object (x:xs) Subject ys = (filter ((==(tripleTrd x)).tripleFst) ys) ++ (fixTriples Object xs Subject ys)
+fixTriples Object [] Predicate ys = []
+fixTriples Object (x:xs) Predicate ys = (filter ((==(tripleTrd x)).tripleSnd) ys) ++ (fixTriples Object xs Predicate ys)
+fixTriples Object [] Object ys = []
+fixTriples Object (x:xs) Object ys = (filter ((==(tripleTrd x)).tripleTrd) ys) ++ (fixTriples Object xs Object ys)
+
+-- fixes triples for IsLit case
+--fixTriples' :: Triplet -> [(String, String, String)] -> LiteralType -> [(String, String, String)]
+--fixTriples' t1 [] l = []
+--fixTriples' Subject (x:xs) (QString l) = (filter (==(tripleFst x)) l) ++ (fixTriples' Subject xs (QString l))
+--fixTriples' Predicate (x:xs) (QString l) = (filter (==(tripleSnd x)) l) ++ (fixTriples' Predicate xs (QString l))
+--fixTriples' Object (x:xs) (QString l) = (filter (==(tripleTrd x)) l) ++ (fixTriples' Object xs (QString l))
 
 scanForFileNames :: [Query] ->  [(String, String)]
 scanForFileNames [] = []
@@ -78,6 +108,7 @@ prettyPrint (x:xs) | (take 7 (tripleTrd x)) == "http://" = "<" ++ (tripleFst x) 
                    | otherwise = "<" ++ (tripleFst x) ++ "><" ++ (tripleSnd x) ++ "> " ++ (tripleTrd x) ++ " .\n" ++ (prettyPrint xs)
 
 filterDuplicates :: [(String, String, String)] -> [(String, String, String)]
+filterDuplicates [] = []
 filterDuplicates [x] = [x]
 filterDuplicates (x:y:xs) | (x == y) = filterDuplicates (y:xs)
                           | otherwise = x : filterDuplicates (y:xs)

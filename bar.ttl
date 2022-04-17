@@ -15,3 +15,4 @@ t:subjectE p:predicateE t:objectE .
 <prob4D> <testPredB> <prob4E> .
 <prob4F> <testPredC> <prob4A> .
 
+<testA> <testSubA> "jivotno" .
