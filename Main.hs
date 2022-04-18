@@ -37,6 +37,24 @@ filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredI
 filterConditionals name (NormalWhereRequest (IsLit a b)) env = (name, (getFilteredIsLitTriples a b env)) : env
 filterConditionals name (NormalWhereRequest (IsBetween a b)) env = (name, (getFilteredBetweenTriples a b env)) : env
 filterConditionals name (NormalWhereRequest (IsNotBetween a b)) env = (name, (getFilteredNotBetweenTriples a b env)) : env
+filterConditionals name (OrWhereRequest a b) env = (name, ((lookTurtleValue name (filterConditionals name a env)) ++ (lookTurtleValue name (filterConditionals name b env)))) : env
+filterConditionals name (AndWhereRequest a b) env = (name, (calcAndResult r q q)) : env
+                                                      where 
+                                                        --   r = [("#problem2", "testPredA", "true"), ("#problem2", "testPredA", "false")]
+                                                        --   q = [("#problem2", "testPredA", "true"), ("#problem2", "testPredB", "true"), ("testSubA", "#predicate1", "true"), ("testSubB", "#predicate2", "true")]
+                                                         r = (lookTurtleValue name (filterConditionals name a env))
+                                                         q = (lookTurtleValue name (filterConditionals name b env))
+
+calcAndResult :: [(String, String, String)] -> [(String, String, String)] -> [(String, String, String)] -> [(String, String, String)]
+--calcAndResult [] [] zs = []
+calcAndResult [] ys zs = []
+calcAndResult xs [] zs = calcAndResult xs zs zs
+calcAndResult (x:xs) (y:ys) zs | x == y = x : (calcAndResult xs ys zs)
+                               | otherwise = calcAndResult (x:xs) ys zs
+
+                                                    
+andFilter :: String -> WhereType -> TurtleEnv -> [(String, String, String)]
+andFilter name a env = lookTurtleValue name (filterConditionals name a env)
 
 getFilteredIsTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
 getFilteredIsTriples (n1, t1) (n2, t2) env = (fixTriples t1 a t2 b) ++ (fixTriples t2 b t1 a)

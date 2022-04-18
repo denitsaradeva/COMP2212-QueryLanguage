@@ -1,3 +1,3 @@
-SELECT foo AS a
-WHERE a$subject IS "banica" AND a$object IS true AS b
-PRINT b;
+SELECT foo.ttl AS p
+WHERE p$subject IS "http://www.cw.org/#problem2" AND p$object IS true AS a
+PRINT a;
