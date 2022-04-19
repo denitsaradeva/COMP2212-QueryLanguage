@@ -1,0 +1,4 @@
+<http://www.cw.org/#problem2><http://www.cw.org/testPredA> true .
+<http://www.cw.org/#problem2><http://www.cw.org/testPredB> true .
+<http://www.cw.org/#problemNot2><http://www.cw.org/testPredB> false .
+<http://www.cw.org/#problemNot2><http://www.cw.org/testPredB> true .
