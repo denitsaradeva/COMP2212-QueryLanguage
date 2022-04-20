@@ -1,3 +1,0 @@
-SELECT foo.ttl AS p
-WHERE p$subject IS "http://www.cw.org/#problem2" AND p$object IS true OR p$subject IS "http://www.cw.org/#problemNot2" AS a
-PRINT a;

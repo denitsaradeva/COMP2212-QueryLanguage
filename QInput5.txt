@@ -1,8 +1,0 @@
-SELECT foo AS c
-WHERE c$object IS NOT BETWEEN (0, 99) AS a
-UPDATE a$object TO false
-WHERE c$object IS BETWEEN (0, 99) AS b
-UPDATE b$object TO true
-PRINT a,b;
-
--- TODO: put right range for the question (0,99)

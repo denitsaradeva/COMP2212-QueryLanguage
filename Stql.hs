@@ -13,9 +13,10 @@ type TurtleEnv = [(String, [(String, String, String)])]
 main :: IO ()
 main = do
           x <- getArgs
-          z <- readFile (head x)
-          y <- loopNames (scanForFileNames ((parseQuery . RQLQTokens.alexScanTokens) z)) --environment/memory
-          writeFile "testOutputRQLQ.txt" (prettyPrint (filterDuplicates(sortBy sortAlph (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (y)))))
+          z <- readFile $ head x
+          y <- loopNames $ scanForFileNames $ parseQuery . RQLQTokens.alexScanTokens $ z --environment/memory
+          --writeFile "testOutputRQLQ.txt" (prettyPrint (filterDuplicates(sortBy sortAlph (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (y)))))
+          putStrLn $ prettyPrint $ filterDuplicates $ sortBy sortAlph $ loopQuery (parseQuery . RQLQTokens.alexScanTokens $ z) (y)
 
 -- Query Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -186,7 +187,7 @@ read' x = read (tripleTrd x) :: Int
 scanForFileNames :: [Query] ->  [(String, String)]
 scanForFileNames [] = []
 scanForFileNames ((Select []):xs) = []
-scanForFileNames ((Select (a:ys)):xs) = (((fst a), (snd a)) : (scanForFileNames (((Select (ys)):xs))))
+scanForFileNames ((Select (a:ys)):xs) = (((fst a), (snd a)++".ttl") : (scanForFileNames (((Select (ys)):xs))))
 scanForFileNames (_ :xs) = []
 
 readQFile :: FilePath -> IO String
@@ -204,6 +205,11 @@ loopNames (file:fileNames) = do
 
 ask :: (String, [(String,String,String)]) -> IO (String, [(String,String,String)])
 ask s = return s
+
+exists :: String -> TurtleEnv -> Bool
+exists c [] = False
+exists c (x:xs) | c == fst x = True
+                | otherwise = exists xs
 
 -- Turtle Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 prettyPrint :: [(String, String, String)] -> String

@@ -1,3 +1,0 @@
-SELECT foo.ttl AS a
-WHERE a$predicate IS "baraban" OR a$predicate IS "pelikan" OR a$predicate IS "garne" AS b
-PRINT b; 

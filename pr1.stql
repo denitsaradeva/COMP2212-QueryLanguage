@@ -1,2 +1,2 @@
-SELECT foo.ttl AS a, bar.ttl AS b
+SELECT foo AS a, bar AS b
 PRINT a, b;
