@@ -34,6 +34,7 @@ loopQuery ((Print [x]):xs) env = (lookTurtleValue x env) ++ (loopQuery xs env)
 loopQuery ((Print (x:xs)):ys) env = (lookTurtleValue x env) ++ (loopQuery ((Print xs):ys) env)
 loopQuery (_:xs) env = loopQuery xs env
 
+<<<<<<< HEAD
 cloneEnvValue :: String -> String -> TurtleEnv -> TurtleEnv
 cloneEnvValue l1 l2 [] = []
 cloneEnvValue l1 l2 env = (l2, (lookTurtleValue l1 env)) : env

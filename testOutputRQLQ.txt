@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 <http://www.cw.org/testSubA><http://www.cw.org/hasPosInt> 51 .
 <http://www.cw.org/testSubA><http://www.cw.org/problem5/#inRange> false .
 <http://www.cw.org/testSubA><http://www.cw.org/problem5/#inRange> true .
@@ -5,3 +6,9 @@
 <http://www.cw.org/testSubA><http://www.cw.org/testObjList> 21 .
 <http://www.cw.org/testSubA><http://www.cw.org/testPredList> 11 .
 <http://www.cw.org/testSubA><http://www.cw.org/testPredList> 21 .
+=======
+<http://www.cw.org/#problem2><http://www.cw.org/testPredA> true .
+<http://www.cw.org/#problem2><http://www.cw.org/testPredB> true .
+<http://www.cw.org/#problemNot2><http://www.cw.org/testPredB> false .
+<http://www.cw.org/#problemNot2><http://www.cw.org/testPredB> true .
+>>>>>>> e20b92f7c5f325139c57e2750f54e03bfb56cc5b
