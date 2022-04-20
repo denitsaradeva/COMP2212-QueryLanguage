@@ -1,6 +1,8 @@
 import System.Environment
 import RQLQTokens
 import RQLQGrammar
+import RQLTokens
+import RQLGrammar
 
 main :: IO ()
 main = do

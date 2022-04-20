@@ -16,6 +16,7 @@ import Data.List
   AND                                    {TokenAnd}
   OR                                     {TokenOr}
   UPDATE                                 {TokenUpdate}
+  CLONE                                  {TokenClone}
   BETWEEN                                {TokenBetween}
   NOT                                    {TokenNot}
   TO                                     {TokenTo}
@@ -45,8 +46,9 @@ QueList : Que                            {[$1]}
 
 Que : SELECT SelectQue                   {Select $2}
     | WHERE GeneralWhereQue              {Where $2}
-    | UPDATE UpdateQue                   {Update $2}
+    | UPDATE GeneralUpdateQue            {Update $2}
     | PRINT PrintQue                     {Print $2}
+    | CLONE CloneQue                     {Clone $2}
 
 ----------------------------------------------------------------------------------------------
 
@@ -66,11 +68,17 @@ NormalWhereQue : str dollar Triplets IS Literal                                 
                | str dollar Triplets IS NOT BETWEEN lBracket Literal comma Literal rBracket   {IsNotBetween ($1, $3) ($8, $10)}
 
 ----------------------------------------------------------------------------------------------
-UpdateQue : str dollar object TO Literal     {($1, $5)}
+GeneralUpdateQue : str dollar UpdateQue     {($1, $3)}
+
+UpdateQue : Triplets TO Literal            {NormalUpdate ($1, $3)}
+          | Triplets Literal               {CalcUpdate ($1, $2)}
 
 ----------------------------------------------------------------------------------------------
 PrintQue : str semiColon                 {[$1]}
          | str comma PrintQue            {($1:$3)}
+
+----------------------------------------------------------------------------------------------
+CloneQue : str AS str                 {($1, $3)}
 
 ----------------------------------------------------------------------------------------------
 Literal : int                            {QInt $1}
@@ -92,8 +100,9 @@ parseError ts = error ("Error on tokens: " ++ (show ts))
 
 data Query = Select [(String, String)]
            | Where (String, WhereType)
-           | Update (String, LiteralType)
+           | Update (String, UpdateType)
            | Print [String]
+           | Clone (String, String)
         deriving Show
 
 data WhereType = NormalWhereRequest ConditionalType
@@ -106,6 +115,10 @@ data ConditionalType = Is (String, Triplet) (String, Triplet)
                      | IsBetween (String, Triplet) (LiteralType, LiteralType)
                      | IsNotBetween (String, Triplet) (LiteralType, LiteralType)
                 deriving Show
+
+data UpdateType = NormalUpdate (Triplet, LiteralType)
+                | CalcUpdate (Triplet, LiteralType)
+           deriving Show
 
 data Triplet = Subject
              | Predicate

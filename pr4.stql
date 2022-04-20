@@ -1,0 +1,3 @@
+SELECT foo.ttl AS a, bar.ttl AS b
+WHERE a$object IS b$subject AND b$object IS a$subject AS c
+PRINT c;

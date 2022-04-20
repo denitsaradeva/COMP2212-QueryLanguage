@@ -27,51 +27,83 @@ lookTurtleValue a (x:xs) | a == (fst (x)) = snd (x)
 
 loopQuery :: [Query] -> TurtleEnv -> [(String, String, String)]
 loopQuery [] env = []
-loopQuery ((Where x):ys) env = loopQuery ys (filterConditionals (fst x) (snd x) env)
+loopQuery ((Where x):ys) env = loopQuery ys (filterConditionals (fst x) (snd x) env "")
+loopQuery ((Clone x):ys) env = loopQuery ys (cloneEnvValue (fst x) (snd x) env)
+loopQuery ((Update x):ys) env = loopQuery ys (updateEnvValue (fst x) (snd x) env)
 loopQuery ((Print [x]):xs) env = (lookTurtleValue x env) ++ (loopQuery xs env)
 loopQuery ((Print (x:xs)):ys) env = (lookTurtleValue x env) ++ (loopQuery ((Print xs):ys) env)
 loopQuery (_:xs) env = loopQuery xs env
 
-filterConditionals :: String -> WhereType -> TurtleEnv -> TurtleEnv
-filterConditionals name (NormalWhereRequest (Is a b)) env = (name, (getFilteredIsTriples a b env)) : env
-filterConditionals name (NormalWhereRequest (IsLit a b)) env = (name, (getFilteredIsLitTriples a b env)) : env
-filterConditionals name (NormalWhereRequest (IsBetween a b)) env = (name, (getFilteredBetweenTriples a b env)) : env
-filterConditionals name (NormalWhereRequest (IsNotBetween a b)) env = (name, (getFilteredNotBetweenTriples a b env)) : env
-filterConditionals name (OrWhereRequest a b) env = (name, ((lookTurtleValue name (filterConditionals name a env)) ++ (lookTurtleValue name (filterConditionals name b env)))) : env
-filterConditionals name (AndWhereRequest a b) env = (name, (calcAndResult r q q)) : env
-                                                      where 
-                                                        --   r = [("#problem2", "testPredA", "true"), ("#problem2", "testPredA", "false")]
-                                                        --   q = [("#problem2", "testPredA", "true"), ("#problem2", "testPredB", "true"), ("testSubA", "#predicate1", "true"), ("testSubB", "#predicate2", "true")]
-                                                         r = (lookTurtleValue name (filterConditionals name a env))
-                                                         q = (lookTurtleValue name (filterConditionals name b env))
+cloneEnvValue :: String -> String -> TurtleEnv -> TurtleEnv
+cloneEnvValue l1 l2 [] = []
+cloneEnvValue l1 l2 env = (l2, (lookTurtleValue l1 env)) : env
 
-calcAndResult :: [(String, String, String)] -> [(String, String, String)] -> [(String, String, String)] -> [(String, String, String)]
---calcAndResult [] [] zs = []
-calcAndResult [] ys zs = []
-calcAndResult xs [] zs = calcAndResult xs zs zs
-calcAndResult (x:xs) (y:ys) zs | x == y = x : (calcAndResult xs ys zs)
-                               | otherwise = calcAndResult (x:xs) ys zs
+updateEnvValue :: String -> UpdateType -> TurtleEnv -> TurtleEnv
+updateEnvValue name (NormalUpdate x) env = (name, (updateTripleValue (fst x) (snd x) (lookTurtleValue name env))) : (removeTripleValue name env)
+updateEnvValue name (CalcUpdate x) env = (name, (calcUpdateTripleValue (fst x) (snd x) (lookTurtleValue name env))) : (removeTripleValue name env)
 
-                                                    
-andFilter :: String -> WhereType -> TurtleEnv -> [(String, String, String)]
-andFilter name a env = lookTurtleValue name (filterConditionals name a env)
+removeTripleValue :: String -> TurtleEnv -> TurtleEnv
+removeTripleValue name [] = []
+removeTripleValue name (x:env) | (fst x) == name = removeTripleValue name env
+                               | otherwise = x : removeTripleValue name env
 
-getFilteredIsTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> [(String, String, String)]
-getFilteredIsTriples (n1, t1) (n2, t2) env = (fixTriples t1 a t2 b) ++ (fixTriples t2 b t1 a)
-                                                  where a = lookTurtleValue n1 env
+calcUpdateTripleValue :: Triplet -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
+calcUpdateTripleValue Object (QPlusInt x) [] = []
+--calcUpdateTripleValue Object (QPlusInt x) (y:ys) = (tripleFst y, tripleSnd y, (tripleTrd y)) : calcUpdateTripleValue Object (QPlusInt x) ys
+calcUpdateTripleValue Object (QPlusInt x) (y:ys) = (tripleFst y, tripleSnd y, (calcObjValue ("+"++(show x)) (tripleTrd y))) : calcUpdateTripleValue Object (QPlusInt x) ys
+calcUpdateTripleValue Object (QMinusInt x) [] = []
+calcUpdateTripleValue Object (QMinusInt x) (y:ys) = (tripleFst y, tripleSnd y, (calcObjValue ("-"++(show x)) (tripleTrd y))) : calcUpdateTripleValue Object (QMinusInt x) ys
+calcUpdateTripleValue x y z = error "Invalid request"
+
+calcObjValue :: String -> String -> String
+calcObjValue (x:xs) y | x == '+' = show ((read y :: Int) + (read xs :: Int))
+                      | x == '-' = show ((read y :: Int) - (read xs :: Int))
+                      | otherwise = error "Invalid input"
+
+updateTripleValue :: Triplet -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
+updateTripleValue Subject (QString x) [] = []
+updateTripleValue Subject (QString x) (y:ys) = (x, tripleSnd y, tripleTrd y) : updateTripleValue Subject (QString x) ys
+updateTripleValue Predicate (QString x) [] = []
+updateTripleValue Predicate (QString x) (y:ys) = (tripleFst y, x, tripleTrd y) : updateTripleValue Predicate (QString x) ys
+updateTripleValue Object x [] = []
+updateTripleValue Object (QString x) (y:ys) = (tripleFst y, tripleSnd y, x) : updateTripleValue Object (QString x) ys
+updateTripleValue Object (QBool x) (y:ys) = (tripleFst y, tripleSnd y, (show x)) : updateTripleValue Object (QBool x) ys
+updateTripleValue Object (QInt x) (y:ys) = (tripleFst y, tripleSnd y, (show x)) : updateTripleValue Object (QInt x) ys
+updateTripleValue Object (QMinusInt x) (y:ys) = (tripleFst y, tripleSnd y, ("-"++(show x))) : updateTripleValue Object (QMinusInt x) ys
+updateTripleValue Object (QPlusInt x) (y:ys) = (tripleFst y, tripleSnd y, (show x)) : updateTripleValue Object (QPlusInt x) ys
+updateTripleValue x y z = error "Invalid request"
+
+  --(STring, string, string)
+
+filterConditionals :: String -> WhereType -> TurtleEnv -> String -> TurtleEnv -- last String is used for treshhold for AndWhereRequest
+filterConditionals name (NormalWhereRequest (Is a b)) env trshld = (name, (getFilteredIsTriples a b env trshld)) : env
+filterConditionals name (NormalWhereRequest (IsLit a b)) env trshld = (name, (getFilteredIsLitTriples a b env trshld)) : env
+filterConditionals name (NormalWhereRequest (IsBetween a b)) env trshld = (name, (getFilteredBetweenTriples a b env trshld)) : env
+filterConditionals name (NormalWhereRequest (IsNotBetween a b)) env trshld = (name, (getFilteredNotBetweenTriples a b env trshld)) : env
+filterConditionals name (OrWhereRequest a b) env trshld = (name, ((lookTurtleValue name (filterConditionals name a env trshld)) ++ (lookTurtleValue name (filterConditionals name b env trshld)))) : env
+filterConditionals name (AndWhereRequest a b) env trshld = filterConditionals name a e name
+                                                      where e = filterConditionals name b env trshld
+
+getFilteredIsTriples :: (String, Triplet) -> (String, Triplet) -> TurtleEnv -> String -> [(String, String, String)] -- last String is used for treshhold for AndWhereRequest
+getFilteredIsTriples (n1, t1) (n2, t2) env trshld = (fixTriples t1 a t2 b) ++ (fixTriples t2 b t1 a)
+                                                  where a | trshld == "" = lookTurtleValue n1 env
+                                                          | otherwise = lookTurtleValue trshld env
                                                         b = lookTurtleValue n2 env
 
-getFilteredIsLitTriples :: (String, Triplet) -> LiteralType -> TurtleEnv -> [(String, String, String)]
-getFilteredIsLitTriples (n1, t1) l env = (fixTriples' t1 a l)
-                                                  where a = lookTurtleValue n1 env
+getFilteredIsLitTriples :: (String, Triplet) -> LiteralType -> TurtleEnv -> String -> [(String, String, String)] -- last String is used for treshhold for AndWhereRequest
+getFilteredIsLitTriples (n1, t1) l env trshld = (fixTriples' t1 a l)
+                                                  where a | trshld == "" = lookTurtleValue n1 env
+                                                          | otherwise = lookTurtleValue trshld env
 
-getFilteredBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> [(String, String, String)]
-getFilteredBetweenTriples (n1, t1) (l, r) env = (fixTriples'' l r a)
-                                                       where a = filterNumberObject $ lookTurtleValue n1 env
+getFilteredBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> String -> [(String, String, String)] -- last String is used for treshhold for AndWhereRequest
+getFilteredBetweenTriples (n1, t1) (l, r) env trshld = (fixTriples'' l r a)
+                                                       where a | trshld == "" = filterNumberObject $ lookTurtleValue n1 env
+                                                               | otherwise = filterNumberObject $ lookTurtleValue trshld env
 
-getFilteredNotBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> [(String, String, String)]
-getFilteredNotBetweenTriples (n1, t1) (l, r) env = (fixTriples''' l r a)
-                                                       where a = filterNumberObject $ lookTurtleValue n1 env
+getFilteredNotBetweenTriples :: (String, Triplet) -> (LiteralType, LiteralType) -> TurtleEnv -> String -> [(String, String, String)] -- last String is used for treshhold for AndWhereRequest
+getFilteredNotBetweenTriples (n1, t1) (l, r) env trshld = (fixTriples''' l r a)
+                                                       where a | trshld == "" = filterNumberObject $ lookTurtleValue n1 env
+                                                               | otherwise = filterNumberObject $ lookTurtleValue trshld env
 
 filterNumberObject :: [(String, String, String)] -> [(String, String, String)]
 filterNumberObject [] = []

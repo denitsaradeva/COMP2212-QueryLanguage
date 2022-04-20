@@ -1,0 +1,2 @@
+SELECT foo.ttl AS a, bar.ttl AS b
+PRINT a, b;
