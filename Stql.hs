@@ -15,14 +15,13 @@ main = do
           x <- getArgs
           z <- readFile $ head x
           y <- loopNames $ scanForFileNames $ parseQuery . RQLQTokens.alexScanTokens $ z --environment/memory
-          --writeFile "testOutputRQLQ.txt" (prettyPrint (filterDuplicates(sortBy sortAlph (loopQuery ((parseQuery . RQLQTokens.alexScanTokens) z) (y)))))
           putStrLn $ prettyPrint $ filterDuplicates $ sortBy sortAlph $ loopQuery (parseQuery . RQLQTokens.alexScanTokens $ z) (y)
 
 -- Query Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 --Finds and returns the corresponding to the input name triples in our environment
 lookTurtleValue :: String -> TurtleEnv -> [(String, String, String)]
-lookTurtleValue a [] = error "non existing variable"
+lookTurtleValue a [] = error "The variable doesn't exist in the environment!"
 lookTurtleValue a (x:xs) | a == fst x = snd x
                          | otherwise = lookTurtleValue a xs
 
@@ -48,7 +47,7 @@ updateEnvValue name (CalcUpdate x) env = (name, (calcUpdateTripleValue (fst x) (
 
 --Removes an entry from the environment
 removeTripleValue :: String -> TurtleEnv -> TurtleEnv
-removeTripleValue name [] = []
+removeTripleValue name [] = error "The variable doesn't exist in the environment!"
 removeTripleValue name (x:env) | (fst x) == name = removeTripleValue name env
                                | otherwise = x : removeTripleValue name env
 
@@ -58,13 +57,13 @@ calcUpdateTripleValue Object (QPlusInt x) [] = []
 calcUpdateTripleValue Object (QPlusInt x) (y:ys) = (tripleFst y, tripleSnd y, (calcObjValue ("+"++(show x)) (tripleTrd y))) : calcUpdateTripleValue Object (QPlusInt x) ys
 calcUpdateTripleValue Object (QMinusInt x) [] = []
 calcUpdateTripleValue Object (QMinusInt x) (y:ys) = (tripleFst y, tripleSnd y, (calcObjValue ("-"++(show x)) (tripleTrd y))) : calcUpdateTripleValue Object (QMinusInt x) ys
-calcUpdateTripleValue x y z = error "Invalid request"
+calcUpdateTripleValue x y z = error "Invalid request - only Integer Objects are accepted!"
 
 --Calculates the upated object value
 calcObjValue :: String -> String -> String
 calcObjValue (x:xs) y | x == '+' = show ((read y :: Int) + (read xs :: Int))
                       | x == '-' = show ((read y :: Int) - (read xs :: Int))
-                      | otherwise = error "Invalid input"
+                      | otherwise = error "Invalid input - not correct format (must specify '+' increase or '-' decrease)!"
 
 --Handles the update query for substitution
 updateTripleValue :: Triplet -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
@@ -78,7 +77,7 @@ updateTripleValue Object (QBool x) (y:ys) = (tripleFst y, tripleSnd y, (show x))
 updateTripleValue Object (QInt x) (y:ys) = (tripleFst y, tripleSnd y, (show x)) : updateTripleValue Object (QInt x) ys
 updateTripleValue Object (QMinusInt x) (y:ys) = (tripleFst y, tripleSnd y, ("-"++(show x))) : updateTripleValue Object (QMinusInt x) ys
 updateTripleValue Object (QPlusInt x) (y:ys) = (tripleFst y, tripleSnd y, (show x)) : updateTripleValue Object (QPlusInt x) ys
-updateTripleValue x y z = error "Invalid request"
+updateTripleValue x y z = error "Invalid request - the Triplet cannot be compared to such value!"
 
 --Handles all types of where query - and, or, and normal
 filterConditionals :: String -> WhereType -> TurtleEnv -> String -> TurtleEnv -- last String is used for threshold for AndWhereRequest
@@ -123,7 +122,7 @@ filterNumberObject (x:xs) | isInt (tripleTrd x) = x : filterNumberObject xs
 
 --Returns all triples, which match the input condition
 fixTriples :: Triplet -> [(String, String, String)] -> Triplet -> [(String, String, String)] -> [(String, String, String)]
-fixTriples t1 [] t2 [] = error "Empty inputs"
+fixTriples t1 [] t2 [] = error "Empty inputs!"
 
 fixTriples Subject [] Subject ys = []
 fixTriples Subject (x:xs) Subject ys = (filter ((==(tripleFst x)).tripleFst) ys) ++ (fixTriples Subject xs Subject ys)
@@ -156,7 +155,7 @@ fixTriples' Object xs (QBool l) = (filter ((==(show l)).tripleTrd) xs)
 fixTriples' Object xs (QInt l) = (filter ((==(show l)).tripleTrd) xs)
 fixTriples' Object xs (QPlusInt l) = (filter ((==(show l)).tripleTrd) xs)
 fixTriples' Object xs (QMinusInt l) = (filter ((==("-"++show l)).tripleTrd) xs)
-fixTriples' t1 xs l = error "Invalid input"
+fixTriples' t1 xs l = error "Invalid request - the Triplet cannot be compared to such value!"
 
 --Fixes triples for IsBetween case
 fixTriples'' :: LiteralType -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
@@ -173,7 +172,7 @@ fixTriples'' (QPlusInt a) (QPlusInt b) xs  | a > b = error "Invalid range"
 fixTriples'' (QMinusInt a) (QPlusInt b) xs = filter ((>=(negate a)) . (read')) (filter (((<=b) . (read'))) xs) --no need for range checking
 fixTriples'' (QPlusInt a) (QInt b) xs  | a > b = error "Invalid range"
                                        | otherwise =  filter ((>=a) . (read')) (filter (((<=b) . (read'))) xs)
-fixTriples'' l1 l2 xs = error "Invalid range"
+fixTriples'' l1 l2 xs = error "Invalid request - the Triplet cannot be compared to such value!"
 
 --Fixes triples for IsNotBetween case
 fixTriples''' :: LiteralType -> LiteralType -> [(String, String, String)] -> [(String, String, String)]
@@ -190,7 +189,7 @@ fixTriples''' (QPlusInt a) (QPlusInt b) xs  | a > b = error "Invalid range"
 fixTriples''' (QMinusInt a) (QPlusInt b) xs = filter ((<(negate a)) . (read')) xs ++ filter ((>b) . (read')) xs --no need for range checking
 fixTriples''' (QPlusInt a) (QInt b) xs  | a > b = error "Invalid range"
                                         | otherwise =  filter ((<a) . (read')) xs ++ filter ((>b) . (read')) xs 
-fixTriples''' l1 l2 xs = error "Invalid range"
+fixTriples''' l1 l2 xs = error "Invalid request - the Triplet cannot be compared to such value!"
 
 --Converts the object(third) value of the triple from String to Int. Filtering before conversion ensures no errors in parsing
 read' :: (String, String, String) -> Int
@@ -316,7 +315,7 @@ findPrefixes _ env = ("", "")
 
 --Function to check the value of a token (used to find whether the base needs to be added)
 lookValue :: String -> [(String, String)] -> String
-lookValue a [] = error "non existing variable"
+lookValue a [] = error "The variable doesn't exist in the environment!"
 lookValue a (x:xs) | a == (fst(x)) = snd(x)
                    | otherwise = lookValue a xs
 
