@@ -23,7 +23,7 @@ main = do
 
 lookTurtleValue :: String -> TurtleEnv -> [(String, String, String)]
 lookTurtleValue a [] = error "non existing variable"
-lookTurtleValue a (x:xs) | a == (fst (x)) = snd (x)
+lookTurtleValue a (x:xs) | a == fst x = snd x
                          | otherwise = lookTurtleValue a xs
 
 loopQuery :: [Query] -> TurtleEnv -> [(String, String, String)]
@@ -209,7 +209,7 @@ ask s = return s
 exists :: String -> TurtleEnv -> Bool
 exists c [] = False
 exists c (x:xs) | c == fst x = True
-                | otherwise = exists xs
+                | otherwise = exists c xs
 
 -- Turtle Handle ----------------------------------------------------------------------------------------------------------------------------------------------------------
 prettyPrint :: [(String, String, String)] -> String
@@ -242,53 +242,62 @@ tripleSnd (x,y,z) = y
 tripleFst :: (a,a,a) -> a
 tripleFst (x,y,z) = x
 
+--Sorts by the first two elements of a triple
 sortAlph :: (Ord a1, Ord a2, Ord a3) => (a1, a2, a3) -> (a1, a2, a3) -> Ordering
 sortAlph (a, b, c) (x, y, z)
   | a < x = LT
   | a > x = GT
   | a == x = sortBeta (a, b, c) (x, y, z)
 
+--Sorts by the second and third elements of a triple
 sortBeta :: (Ord a2, Ord a3) => (b1, a2, a3) -> (b2, a2, a3) -> Ordering
 sortBeta (a, b, c) (x, y, z)
   | b < y = LT
   | b > y = GT
   | b == y = compare c z
 
-removeEmptyTriples :: [(String, String)] -> [(String, String)]
-removeEmptyTriples [] = []
-removeEmptyTriples (t:tri) | t == ("","") = removeEmptyTriples tri
-                           | otherwise = t : removeEmptyTriples tri
-
-findVarLoop :: [TurtleExp] -> [(String, String)]
-findVarLoop [] = []
-findVarLoop (e:expr) = findVar e : findVarLoop expr
-
-findVar :: TurtleExp -> (String, String)
-findVar (Base (AbsExpr st)) = ("base", "http://"++st)
-findVar _ = ("","")
-
-findPrefixesLoop :: [TurtleExp] -> [(String, String)] -> [(String, String)]
-findPrefixesLoop [] _ = []
-findPrefixesLoop (e:expr) env = findPrefixes e en : findPrefixesLoop expr env
-                             where en = removeEmptyTriples env
-
-
-findPrefixes :: TurtleExp -> [(String, String)] -> (String, String)
-findPrefixes (Prefix (pr) (AbsExpr st)) env = (pr, "http://"++st)
-findPrefixes (Prefix (pr) (URIExpr st)) env = (pr, ((lookValue "base" env)++st))
-findPrefixes _ env= ("", "")
-
+--Function that creates the final clear environment with base and prefixes
 finaliseEnv :: [(String, String)] -> [(String, String)] -> [(String, String)]
 finaliseEnv [] [] = []
 finaliseEnv [] ys = removeEmptyTriples ys
 finaliseEnv xs [] = removeEmptyTriples xs
 finaliseEnv xs ys = (removeEmptyTriples xs) ++ (removeEmptyTriples ys)
 
+--Removes empty tuples (used when creating environment with the base and prefixes)
+removeEmptyTriples :: [(String, String)] -> [(String, String)]
+removeEmptyTriples [] = []
+removeEmptyTriples (t:tri) | t == ("","") = removeEmptyTriples tri
+                           | otherwise = t : removeEmptyTriples tri
+
+--Loop function to find the base
+findVarLoop :: [TurtleExp] -> [(String, String)]
+findVarLoop [] = []
+findVarLoop (e:expr) = findVar e : findVarLoop expr
+
+--Function to find the base
+findVar :: TurtleExp -> (String, String)
+findVar (Base (AbsExpr st)) = ("base", "http://"++st)
+findVar _ = ("","")
+
+--Loop function to find the prefixes
+findPrefixesLoop :: [TurtleExp] -> [(String, String)] -> [(String, String)]
+findPrefixesLoop [] _ = []
+findPrefixesLoop (e:expr) env = findPrefixes e en : findPrefixesLoop expr env
+                             where en = removeEmptyTriples env
+
+--Function to find the prefixes
+findPrefixes :: TurtleExp -> [(String, String)] -> (String, String)
+findPrefixes (Prefix (pr) (AbsExpr st)) env = (pr, "http://"++st)
+findPrefixes (Prefix (pr) (URIExpr st)) env = (pr, ((lookValue "base" env)++st))
+findPrefixes _ env = ("", "")
+
+--Function to check the value of a token (used to find whether the base needs to be added)
 lookValue :: String -> [(String, String)] -> String
 lookValue a [] = error "non existing variable"
 lookValue a (x:xs) | a == (fst(x)) = snd(x)
                    | otherwise = lookValue a xs
 
+--Loop to process all the turtle tokens
 changeOccurancesLoop :: [TurtleExp] -> [TurtleExp] -> [(String, String, String)]
 changeOccurancesLoop [] copy = []
 changeOccurancesLoop ((Base (AbsExpr e)):xs) copy = changeOccurancesLoop xs copy
@@ -300,6 +309,7 @@ changeOccurancesLoop (l@(PredObjMTriple x y):xs) copy =
                         (changeOccurancesList l (finaliseEnv (findVarLoop copy) (findPrefixesLoop copy (findVarLoop copy)))) ++ (changeOccurancesLoop xs copy)
 changeOccurancesLoop (x:xs) copy = (changeOccurances x (finaliseEnv (findVarLoop copy) (findPrefixesLoop copy (findVarLoop copy)))) : (changeOccurancesLoop xs copy)
 
+--Processes the turtle tokens into corrrect triples
 changeOccurances :: TurtleExp -> [(String, String)] -> (String, String, String)
 changeOccurances (Triple (URIExpr x) (URIExpr y) (URI z)) env = ((a++x), (a++y), (a++z))
                                                                where a = lookValue "base" env
@@ -364,7 +374,7 @@ changeOccurances (SubPrefix a x b y c z) env = ((r++x), (q++y), (l++z))
                                                   q = lookValue b env
                                                   l = lookValue c env
 
-
+--Processes the turtle tokens into corrrect triples
 changeOccurancesList :: TurtleExp -> [(String, String)] -> [(String, String, String)]
 -- ObjMTriple -------------------------------------------------------------------------------------------------------------------
 changeOccurancesList (ObjMTriple _ _ []) env = []
@@ -557,5 +567,6 @@ changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), ((AbsURI z):zs))
                                                                   (changeOccurancesList (PredObjMTriple (URIExpr x) (((AbsExpr y), (zs)):ys)) env)
                                                                                      where a = lookValue "base" env   
 
+--Adds the "http://" where neccessary
 getAbsOutputString :: String -> String
 getAbsOutputString a = "http://" ++ a
