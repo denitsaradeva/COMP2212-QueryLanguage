@@ -1,5 +1,2 @@
-SELECT foo AS a
-WHERE a$object IS NOT BETWEEN (-5,9) AS b
-UPDATE c$object TO -5
-
-PRINT c;
+SELECT fooTest AS a
+PRINT a;

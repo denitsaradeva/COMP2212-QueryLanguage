@@ -265,18 +265,29 @@ tripleFst :: (a,a,a) -> a
 tripleFst (x,y,z) = x
 
 --Sorts by the first two elements of a triple
-sortAlph :: (Ord a1, Ord a2, Ord a3) => (a1, a2, a3) -> (a1, a2, a3) -> Ordering
+--sortAlph :: (Ord a1, Ord a2, Ord a3) => (a1, a2, a3) -> (a1, a2, a3) -> Ordering
+sortAlph :: (String, String, String) -> (String, String, String) -> Ordering
 sortAlph (a, b, c) (x, y, z)
   | a < x = LT
   | a > x = GT
   | a == x = sortBeta (a, b, c) (x, y, z)
 
 --Sorts by the second and third elements of a triple
-sortBeta :: (Ord a2, Ord a3) => (b1, a2, a3) -> (b2, a2, a3) -> Ordering
+--sortBeta :: (Ord a2, Ord a3) => (b1, a2, a3) -> (b2, a2, a3) -> Ordering
+sortBeta :: (String, String, String) -> (String, String, String) -> Ordering
 sortBeta (a, b, c) (x, y, z)
   | b < y = LT
   | b > y = GT
-  | b == y = compare c z
+  | b == y = sortGamma (a, b, c) (x, y, z)
+
+--sortGamma :: (Ord a3) => (b1, c1, a3) -> (b2, c2, a3) -> Ordering
+sortGamma :: (String, String, String) -> (String, String, String) -> Ordering
+sortGamma (a, b, c) (x, y, z)
+  | take 4 c == "http" && take 4 z /= "http" = LT
+  | take 4 c /= "http" && take 4 z == "http" = GT
+  | c < z = LT
+  | c > z = GT
+  | c == z = LT
 
 --Function that creates the final clear environment with base and prefixes
 finaliseEnv :: [(String, String)] -> [(String, String)] -> [(String, String)]
