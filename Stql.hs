@@ -21,9 +21,9 @@ main = do
 
 --Finds and returns the corresponding to the input name triples in our environment
 lookTurtleValue :: String -> TurtleEnv -> [(String, String, String)]
-lookTurtleValue a [] = error "The variable doesn't exist in the environment!"
-lookTurtleValue a (x:xs) | a == fst x = snd x
-                         | otherwise = lookTurtleValue a xs
+lookTurtleValue a [] = error ("The variable " ++ show a ++ " doesn't exist in the environment!")
+lookTurtleValue a env@(x:xs) | a == fst x = snd x
+                             | otherwise = lookTurtleValue a xs
 
 --Loops through every query line in the input query and handles its functionallity
 loopQuery :: [Query] -> TurtleEnv -> [(String, String, String)]
